@@ -1,0 +1,23 @@
+[workspace]
+authors = ["Alex <alixjcob559@gmail.com>"]
+channels = ["conda-forge"]
+name = "string_therapy_for_material_science"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+serve-scatter = { cmd = "python serve_scatter.py", cwd = "services" }
+serve-heatmap = { cmd = "python serve_heatmap.py", cwd = "services" }
+serve-timeseries = { cmd = "python serve_timeseries.py", cwd = "services" }
+serve-viz = { cmd = "python serve_all.py", cwd = "services" }
+serve-ui = { cmd = "npm run dev", cwd = "viz" }
+serve-chat = { cmd = "python app.py", cwd = "ui" }
+
+[dependencies]
+python = ">=3.13,<3.14"
+nbdev = ">=3.2.2,<4"
+jupyter = ">=1.1.1,<2"
+ipykernel = ">=7.3.0,<8"
+
+[pypi-dependencies]
+string-therapy = ">=0.0.1, <0.0.2"

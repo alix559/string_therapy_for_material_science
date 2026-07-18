@@ -1,0 +1,14 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "string_therapy_for_material_science"
+  site-url: "https://alix559.github.io/string_therapy_for_material_science"
+  description: ""
+  repo-branch: main
+  repo-url: "https://github.com/alix559/string_therapy_for_material_science"
+
+format-links:
+  - html
+  - format: commonmark
+    text: Markdown

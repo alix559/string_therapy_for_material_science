@@ -1,0 +1,8 @@
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Observable Framework
+viz/node_modules/
+viz/dist/
+viz/src/.observablehq/cache/
