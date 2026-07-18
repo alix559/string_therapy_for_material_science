@@ -6,3 +6,6 @@
 viz/node_modules/
 viz/dist/
 viz/src/.observablehq/cache/
+
+# env
+env/
