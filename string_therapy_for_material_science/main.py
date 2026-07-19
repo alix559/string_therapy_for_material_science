@@ -252,15 +252,23 @@ app, rt = fast_app(hdrs=Theme.blue.headers())
 
 @rt("/graph")
 def graph():
-    """Serve graph_network.html with router_graph.json injected."""
+    """Serve graph_network.html with router_graph.json + Observable base URL injected."""
     import json as _json
+    import os as _os
     html = GRAPH_HTML.read_text(encoding="utf-8")
     data = _json.loads(GRAPH_JSON.read_text(encoding="utf-8"))
     marker = '<script id="graph-data" type="application/json">null</script>'
     payload = f'<script id="graph-data" type="application/json">{_json.dumps(data)}</script>'
     if marker not in html:
         raise RuntimeError("graph_network.html missing #graph-data injection point")
-    return Response(html.replace(marker, payload, 1), media_type="text/html")
+    html = html.replace(marker, payload, 1)
+
+    cfg_marker = '<script id="graph-config" type="application/json">null</script>'
+    cfg = {"observableBase": _os.getenv("OBSERVABLE_UI_URL", "http://127.0.0.1:3000")}
+    cfg_payload = f'<script id="graph-config" type="application/json">{_json.dumps(cfg)}</script>'
+    if cfg_marker in html:
+        html = html.replace(cfg_marker, cfg_payload, 1)
+    return Response(html, media_type="text/html")
 
 @rt("/")
 def get(session):

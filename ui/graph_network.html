@@ -13,8 +13,6 @@
       --muted: #8b9aab;
       --line: #2a3542;
       --category: #3d9bfd;
-      --endpoint: #2dd4a8;
-      --edge: #5a6b7d;
       --accent: #f0b429;
     }
     * { box-sizing: border-box; }
@@ -53,7 +51,8 @@
     .legend {
       margin-left: auto;
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
+      align-items: center;
       font-size: 0.8rem;
       color: var(--muted);
     }
@@ -65,38 +64,153 @@
       display: inline-block;
     }
     .swatch.category { background: var(--category); }
-    .swatch.endpoint { background: var(--endpoint); }
+    .close-dash {
+      display: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .close-dash:hover { border-color: var(--category); color: #fff; }
+    .shell.is-split .close-dash { display: inline-flex; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-areas: "graph";
+      min-height: 0;
+      height: 100%;
+      transition: grid-template-columns 0.28s ease;
+    }
+    /* Left = graph viz · Right = dashboard placeholder */
+    .shell.is-split .workspace {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "graph dashboard";
+    }
+
     #graph {
+      grid-area: graph;
       position: relative;
       width: 100%;
       height: 100%;
+      min-width: 0;
       overflow: hidden;
       background:
-        radial-gradient(ellipse at 30% 20%, rgba(61, 155, 253, 0.08), transparent 50%),
-        radial-gradient(ellipse at 70% 80%, rgba(45, 212, 168, 0.06), transparent 45%),
+        radial-gradient(ellipse at 50% 45%, rgba(61, 155, 253, 0.14), transparent 55%),
         var(--bg);
     }
-    svg { width: 100%; height: 100%; display: block; cursor: grab; }
-    svg:active { cursor: grabbing; }
-    .links path {
-      fill: none;
-      stroke: var(--edge);
-      stroke-opacity: 0.85;
-      stroke-width: 1.6;
+    .shell.is-split #graph {
+      border-right: 1px solid var(--line);
     }
+    .pane-label {
+      position: absolute;
+      top: 0.65rem;
+      left: 0.75rem;
+      z-index: 4;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    #dashboard {
+      grid-area: dashboard;
+      display: none;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      background: var(--panel);
+    }
+    .shell.is-split #dashboard {
+      display: flex;
+    }
+    .dash-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--line);
+      background: #161d26;
+      flex-shrink: 0;
+    }
+    .dash-bar strong {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .dash-bar .meta {
+      color: var(--muted);
+      font-size: 0.75rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dash-body {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      min-height: 0;
+      width: 100%;
+      padding: 1.5rem;
+      text-align: center;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(61, 155, 253, 0.08), transparent 55%),
+        #121820;
+    }
+    .dash-placeholder {
+      max-width: 22rem;
+    }
+    .dash-placeholder h2 {
+      margin: 0 0 0.45rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .dash-placeholder p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .dash-placeholder .tag {
+      display: inline-block;
+      margin-top: 0.85rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--accent);
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    svg { width: 100%; height: 100%; display: block; touch-action: none; }
     .node circle {
+      fill: var(--category);
       stroke: #0b1015;
       stroke-width: 2px;
       cursor: pointer;
+      transition: r 0.15s ease, filter 0.15s ease;
     }
-    .node.category circle { fill: var(--category); }
-    .node.endpoint circle { fill: var(--endpoint); }
+    .node:hover circle,
+    .node.is-active circle {
+      filter: drop-shadow(0 0 10px rgba(61, 155, 253, 0.55));
+    }
+    .node.is-active circle { stroke: var(--accent); stroke-width: 2.5px; }
     .node text {
       fill: var(--ink);
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
       pointer-events: none;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+    .node .hint {
+      fill: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
     }
     .tooltip {
       position: absolute;
@@ -114,7 +228,7 @@
       z-index: 5;
     }
     .tooltip strong { color: var(--accent); font-weight: 600; }
-    .tooltip .meta { color: var(--muted); margin-top: 0.35rem; word-break: break-all; }
+    .tooltip .meta { color: var(--muted); margin-top: 0.35rem; }
     .status {
       position: absolute;
       inset: 0;
@@ -125,26 +239,58 @@
       pointer-events: none;
     }
     .status.error { color: #f87171; }
+
+    @media (max-width: 720px) {
+      .shell.is-split .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 42% 1fr;
+        grid-template-areas:
+          "graph"
+          "dashboard";
+      }
+      .shell.is-split #graph {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="shell" id="shell">
     <header>
       <h1>Router graph</h1>
-      <p>Directed force layout from <code>routes/router_graph.json</code></p>
+      <p id="header-hint">Touch the category node → left stays graph viz, right opens dashboard</p>
       <div class="legend">
         <span><i class="swatch category"></i> category</span>
-        <span><i class="swatch endpoint"></i> endpoint</span>
+        <button type="button" class="close-dash" id="close-dash" title="Close dashboard">Close dashboard</button>
       </div>
     </header>
-    <div id="graph">
-      <div class="status" id="status">Loading graph…</div>
-      <div class="tooltip" id="tooltip"></div>
+    <div class="workspace" id="workspace">
+      <div id="graph">
+        <div class="pane-label">Graph viz</div>
+        <div class="status" id="status">Loading graph…</div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+      <aside id="dashboard" aria-label="Dashboard">
+        <div class="dash-bar">
+          <strong id="dash-title">Dashboard</strong>
+          <span class="meta" id="dash-meta">placeholder</span>
+        </div>
+        <div class="dash-body" id="dash-body" hidden>
+          <div class="dash-placeholder">
+            <h2 id="dash-heading">Dashboard</h2>
+            <p id="dash-copy">Placeholder for the category dashboard. Charts will go here later.</p>
+            <span class="tag" id="dash-tag">coming soon</span>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 
-  <!-- Notebook injects JSON here by replacing null (or the whole script body). -->
+  <!-- Notebook / FastHTML injects JSON by replacing null (or the whole script body). -->
   <script id="graph-data" type="application/json">null</script>
+  <!-- Optional: {"observableBase":"http://127.0.0.1:3000"} -->
+  <script id="graph-config" type="application/json">null</script>
 
   <script>
     const GRAPH_FALLBACK_URLS = [
@@ -177,89 +323,139 @@
       throw lastErr || new Error("No graph data available");
     }
 
-    function tooltipHtml(d) {
-      const bits = [
+    function endpointsForCategory(graph, category) {
+      const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+      return (graph.edges || [])
+        .filter((e) => e.source === category.id)
+        .map((e) => byId.get(e.target))
+        .filter((n) => n && n.node_type === "endpoint");
+    }
+
+    function tooltipHtml(d, endpoints) {
+      return [
         `<strong>${d.intent || d.id}</strong>`,
         `<div>${d.description || ""}</div>`,
-        `<div class="meta">type: ${d.node_type || "—"} · id: ${d.id}</div>`,
-      ];
-      if (d.method || d.url) {
-        bits.push(`<div class="meta">${(d.method || "").toUpperCase()} ${d.url || ""}</div>`);
-      }
-      if (Array.isArray(d.parameters) && d.parameters.length) {
-        bits.push(`<div class="meta">params: ${d.parameters.join(", ")}</div>`);
-      }
-      return bits.join("");
+        `<div class="meta">${endpoints.length} endpoint${endpoints.length === 1 ? "" : "s"} · touch to open dashboard</div>`,
+      ].join("");
     }
 
     function render(graph) {
+      const shell = document.getElementById("shell");
       const status = document.getElementById("status");
       const host = document.getElementById("graph");
       const tip = document.getElementById("tooltip");
+      const dashBody = document.getElementById("dash-body");
+      const dashTitle = document.getElementById("dash-title");
+      const dashMeta = document.getElementById("dash-meta");
+      const dashHeading = document.getElementById("dash-heading");
+      const dashCopy = document.getElementById("dash-copy");
+      const dashTag = document.getElementById("dash-tag");
+      const headerHint = document.getElementById("header-hint");
+      const closeBtn = document.getElementById("close-dash");
       status.style.display = "none";
 
-      const width = host.clientWidth || 800;
-      const height = host.clientHeight || 560;
+      const categories = graph.nodes.filter((n) => n.node_type === "category");
+      if (!categories.length) {
+        status.style.display = "grid";
+        status.classList.add("error");
+        status.textContent = "No category node found in router graph";
+        return;
+      }
 
-      const nodes = graph.nodes.map((d) => ({ ...d }));
-      const links = graph.edges.map((d) => ({
-        ...d,
-        source: d.source,
-        target: d.target,
-      }));
+      const category = categories[0];
+      const endpoints = endpointsForCategory(graph, category);
 
-      const svg = d3.select(host)
+      let svg = d3.select(host)
         .append("svg")
-        .attr("viewBox", [0, 0, width, height])
-        .attr("aria-label", "Directed force graph of router nodes");
+        .attr("aria-label", "Category node for router graph");
 
-      const g = svg.append("g");
+      let g = svg.append("g");
+      let nodeSel = null;
 
-      const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id((d) => d.id).distance(140).strength(0.85))
-        .force("charge", d3.forceManyBody().strength(-520))
-        .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("collide", d3.forceCollide(42));
+      function layout() {
+        const width = host.clientWidth || 800;
+        const height = host.clientHeight || 560;
+        svg.attr("viewBox", [0, 0, width, height]);
+        if (nodeSel) {
+          nodeSel.attr("transform", `translate(${width / 2},${height / 2})`);
+        }
+      }
 
-      const link = g.append("g")
-        .attr("class", "links")
-        .selectAll("path")
-        .data(links)
-        .join("path");
+      nodeSel = g.append("g")
+        .attr("class", "node category")
+        .attr("role", "button")
+        .attr("tabindex", 0)
+        .attr("aria-label", `Open dashboard for ${category.intent}`);
 
-      const node = g.append("g")
-        .selectAll("g")
-        .data(nodes)
-        .join("g")
-        .attr("class", (d) => `node ${d.node_type || "endpoint"}`)
-        .call(d3.drag()
-          .on("start", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.25).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on("drag", (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on("end", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          }));
+      nodeSel.append("circle").attr("r", 28);
 
-      node.append("circle")
-        .attr("r", (d) => (d.node_type === "category" ? 16 : 12));
-
-      node.append("text")
+      nodeSel.append("text")
         .attr("x", 0)
-        .attr("y", (d) => (d.node_type === "category" ? 30 : 26))
+        .attr("y", 48)
         .attr("text-anchor", "middle")
-        .text((d) => d.intent || String(d.id));
+        .text(category.intent || String(category.id));
 
-      node
-        .on("mousemove", (event, d) => {
-          tip.innerHTML = tooltipHtml(d);
+      nodeSel.append("text")
+        .attr("class", "hint")
+        .attr("x", 0)
+        .attr("y", 66)
+        .attr("text-anchor", "middle")
+        .text("Open dashboard →");
+
+      function openDashboard() {
+        tip.style.opacity = "0";
+        shell.classList.add("is-split");
+        nodeSel.classed("is-active", true);
+        headerHint.textContent = "Split view: left = graph viz · right = dashboard";
+        const intent = category.intent || "dashboard";
+        dashTitle.textContent = intent;
+        dashMeta.textContent = "placeholder";
+        dashHeading.textContent = intent;
+        dashCopy.textContent = category.description
+          || "Placeholder for the category dashboard. Charts will go here later.";
+        dashTag.textContent = `${endpoints.length} endpoint${endpoints.length === 1 ? "" : "s"}`;
+        dashBody.hidden = false;
+        // Relayout after the CSS split transition starts.
+        requestAnimationFrame(() => {
+          layout();
+          setTimeout(layout, 300);
+        });
+      }
+
+      function closeDashboard() {
+        shell.classList.remove("is-split");
+        nodeSel.classed("is-active", false);
+        headerHint.textContent = "Touch the category node to open its dashboard";
+        dashBody.hidden = true;
+        dashMeta.textContent = "placeholder";
+        requestAnimationFrame(() => {
+          layout();
+          setTimeout(layout, 300);
+        });
+      }
+
+      closeBtn.addEventListener("click", closeDashboard);
+
+      // click + pointer/touch so mobile taps also open the split view
+      nodeSel
+        .on("click", (event) => {
+          event.preventDefault();
+          openDashboard();
+        })
+        .on("pointerup", (event) => {
+          if (event.pointerType === "touch" || event.pointerType === "pen") {
+            event.preventDefault();
+            openDashboard();
+          }
+        })
+        .on("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openDashboard();
+          }
+        })
+        .on("mousemove", (event) => {
+          tip.innerHTML = tooltipHtml(category, endpoints);
           tip.style.opacity = "1";
           const pad = 12;
           const x = Math.min(event.offsetX + pad, host.clientWidth - 280);
@@ -271,17 +467,8 @@
           tip.style.opacity = "0";
         });
 
-      svg.call(
-        d3.zoom()
-          .scaleExtent([0.4, 3])
-          .on("zoom", (event) => g.attr("transform", event.transform))
-      );
-
-      simulation.on("tick", () => {
-        link.attr("d", (d) => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
-
-        node.attr("transform", (d) => `translate(${d.x},${d.y})`);
-      });
+      layout();
+      window.addEventListener("resize", layout);
     }
 
     loadGraph()
