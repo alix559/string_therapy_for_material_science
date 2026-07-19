@@ -9,3 +9,4 @@ viz/src/.observablehq/cache/
 
 # env
 env/
+.env

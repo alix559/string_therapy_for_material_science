@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Router graph</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --ink: #e8eef4;
+      --muted: #8b9aab;
+      --line: #2a3542;
+      --category: #3d9bfd;
+      --endpoint: #2dd4a8;
+      --edge: #5a6b7d;
+      --accent: #f0b429;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    }
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 0.85rem 1.1rem;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #161d26 0%, var(--panel) 100%);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .legend {
+      margin-left: auto;
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .swatch {
+      width: 0.7rem;
+      height: 0.7rem;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .swatch.category { background: var(--category); }
+    .swatch.endpoint { background: var(--endpoint); }
+    #graph {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(61, 155, 253, 0.08), transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(45, 212, 168, 0.06), transparent 45%),
+        var(--bg);
+    }
+    svg { width: 100%; height: 100%; display: block; cursor: grab; }
+    svg:active { cursor: grabbing; }
+    .links path {
+      fill: none;
+      stroke: var(--edge);
+      stroke-opacity: 0.85;
+      stroke-width: 1.6;
+    }
+    .node circle {
+      stroke: #0b1015;
+      stroke-width: 2px;
+      cursor: pointer;
+    }
+    .node.category circle { fill: var(--category); }
+    .node.endpoint circle { fill: var(--endpoint); }
+    .node text {
+      fill: var(--ink);
+      font-size: 12px;
+      font-weight: 500;
+      pointer-events: none;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      max-width: 320px;
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(26, 34, 44, 0.96);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      transition: opacity 0.12s ease;
+      z-index: 5;
+    }
+    .tooltip strong { color: var(--accent); font-weight: 600; }
+    .tooltip .meta { color: var(--muted); margin-top: 0.35rem; word-break: break-all; }
+    .status {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+    .status.error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Router graph</h1>
+      <p>Directed force layout from <code>routes/router_graph.json</code></p>
+      <div class="legend">
+        <span><i class="swatch category"></i> category</span>
+        <span><i class="swatch endpoint"></i> endpoint</span>
+      </div>
+    </header>
+    <div id="graph">
+      <div class="status" id="status">Loading graph…</div>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- Notebook injects JSON here by replacing null (or the whole script body). -->
+  <script id="graph-data" type="application/json">null</script>
+
+  <script>
+    const GRAPH_FALLBACK_URLS = [
+      "../routes/router_graph.json",
+      "/routes/router_graph.json",
+    ];
+
+    async function loadGraph() {
+      if (window.GRAPH_DATA && window.GRAPH_DATA.nodes) return window.GRAPH_DATA;
+
+      const el = document.getElementById("graph-data");
+      if (el) {
+        const raw = (el.textContent || "").trim();
+        if (raw && raw !== "null") {
+          const data = JSON.parse(raw);
+          if (data && data.nodes) return data;
+        }
+      }
+
+      let lastErr;
+      for (const url of GRAPH_FALLBACK_URLS) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error("No graph data available");
+    }
+
+    function tooltipHtml(d) {
+      const bits = [
+        `<strong>${d.intent || d.id}</strong>`,
+        `<div>${d.description || ""}</div>`,
+        `<div class="meta">type: ${d.node_type || "—"} · id: ${d.id}</div>`,
+      ];
+      if (d.method || d.url) {
+        bits.push(`<div class="meta">${(d.method || "").toUpperCase()} ${d.url || ""}</div>`);
+      }
+      if (Array.isArray(d.parameters) && d.parameters.length) {
+        bits.push(`<div class="meta">params: ${d.parameters.join(", ")}</div>`);
+      }
+      return bits.join("");
+    }
+
+    function render(graph) {
+      const status = document.getElementById("status");
+      const host = document.getElementById("graph");
+      const tip = document.getElementById("tooltip");
+      status.style.display = "none";
+
+      const width = host.clientWidth || 800;
+      const height = host.clientHeight || 560;
+
+      const nodes = graph.nodes.map((d) => ({ ...d }));
+      const links = graph.edges.map((d) => ({
+        ...d,
+        source: d.source,
+        target: d.target,
+      }));
+
+      const svg = d3.select(host)
+        .append("svg")
+        .attr("viewBox", [0, 0, width, height])
+        .attr("aria-label", "Directed force graph of router nodes");
+
+      const g = svg.append("g");
+
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id((d) => d.id).distance(140).strength(0.85))
+        .force("charge", d3.forceManyBody().strength(-520))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collide", d3.forceCollide(42));
+
+      const link = g.append("g")
+        .attr("class", "links")
+        .selectAll("path")
+        .data(links)
+        .join("path");
+
+      const node = g.append("g")
+        .selectAll("g")
+        .data(nodes)
+        .join("g")
+        .attr("class", (d) => `node ${d.node_type || "endpoint"}`)
+        .call(d3.drag()
+          .on("start", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0.25).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          })
+          .on("drag", (event, d) => {
+            d.fx = event.x;
+            d.fy = event.y;
+          })
+          .on("end", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          }));
+
+      node.append("circle")
+        .attr("r", (d) => (d.node_type === "category" ? 16 : 12));
+
+      node.append("text")
+        .attr("x", 0)
+        .attr("y", (d) => (d.node_type === "category" ? 30 : 26))
+        .attr("text-anchor", "middle")
+        .text((d) => d.intent || String(d.id));
+
+      node
+        .on("mousemove", (event, d) => {
+          tip.innerHTML = tooltipHtml(d);
+          tip.style.opacity = "1";
+          const pad = 12;
+          const x = Math.min(event.offsetX + pad, host.clientWidth - 280);
+          const y = Math.min(event.offsetY + pad, host.clientHeight - 120);
+          tip.style.left = `${Math.max(8, x)}px`;
+          tip.style.top = `${Math.max(8, y)}px`;
+        })
+        .on("mouseleave", () => {
+          tip.style.opacity = "0";
+        });
+
+      svg.call(
+        d3.zoom()
+          .scaleExtent([0.4, 3])
+          .on("zoom", (event) => g.attr("transform", event.transform))
+      );
+
+      simulation.on("tick", () => {
+        link.attr("d", (d) => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
+
+        node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    loadGraph()
+      .then(render)
+      .catch((err) => {
+        const status = document.getElementById("status");
+        status.classList.add("error");
+        status.textContent = `Failed to load graph: ${err.message || err}`;
+      });
+  </script>
+</body>
+</html>

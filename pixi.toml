@@ -18,6 +18,7 @@ python = ">=3.13,<3.14"
 nbdev = ">=3.2.2,<4"
 jupyter = ">=1.1.1,<2"
 ipykernel = ">=7.3.0,<8"
+monsterui = ">=1.0.19,<2"
 
 [pypi-dependencies]
 string-therapy = ">=0.0.1, <0.0.2"
