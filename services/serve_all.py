@@ -1,4 +1,4 @@
-"""Run all placeholder solubility visualization servers."""
+"""Launch LangGraph viz (from nbs/04_langgraph_viz.ipynb) + settings."""
 
 from __future__ import annotations
 
@@ -7,15 +7,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCRIPTS = (
-    'serve_scatter.py',
-    'serve_heatmap.py',
-    'serve_timeseries.py',
-)
+REPO = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parent
     procs: list[subprocess.Popen[bytes]] = []
 
     def shutdown(*_: object) -> None:
@@ -31,8 +26,17 @@ def main() -> int:
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    for name in SCRIPTS:
-        procs.append(subprocess.Popen([sys.executable, str(root / name)]))
+    # Viz: exported module from nbs/04_langgraph_viz.ipynb
+    procs.append(
+        subprocess.Popen(
+            [sys.executable, "-m", "string_therapy_for_material_science.langgraph_viz"],
+            cwd=str(REPO),
+        )
+    )
+    # Settings lifecycle (MAX start/load/stop)
+    procs.append(
+        subprocess.Popen([sys.executable, str(Path(__file__).parent / "serve_settings.py")])
+    )
 
     try:
         for p in procs:
@@ -42,5 +46,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())
