@@ -5,3 +5,11 @@
 # env
 env/
 .env
+deploy/age/.env
+
+# Python / Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.sesskey
+**/.sesskey

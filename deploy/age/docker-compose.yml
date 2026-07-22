@@ -1,0 +1,36 @@
+# Local PostgreSQL + Apache AGE for string_therapy router graph.
+# Usage (from this directory):
+#   cp .env.example .env   # set POSTGRES_PASSWORD
+#   docker compose up -d
+# Then point the app at:
+#   ROUTER_DATABASE_URL=postgresql://postgres:<password>@127.0.0.1:5432/string_therapy
+
+services:
+  string-therapy-db:
+    build: .
+    image: string-therapy-age:local
+    container_name: string-therapy-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/age/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-string_therapy}
+    command: ["postgres", "-c", "shared_preload_libraries=age"]
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - string_therapy_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  # Named explicitly so local data survives compose project renames.
+  # First-time `up` creates it; existing hosts may already have this volume.
+  string_therapy_pgdata:
+    name: string_therapy_pgdata

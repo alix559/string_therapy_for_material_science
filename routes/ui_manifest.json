@@ -2,169 +2,23 @@
   "categories": [
     {
       "intent": "solubility",
-      "description": "Solubility and SMI-TED (mat-gram) visualization agents",
+      "description": "ESOL solubility via mat-gram (SMI-TED) on this host's MAX serve",
       "endpoints": [
         {
-          "id": "scatter",
-          "intent": "solubility_scatter",
-          "description": "Scatter plot of solubility vs temperature or concentration",
-          "view_kind": "plotly",
-          "label": "Scatter",
-          "icon": "chart-scatter",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_scatter",
+          "id": "embeddings",
+          "intent": "solubility_embeddings",
+          "description": "Predict aqueous solubility (ESOL log10 mol/L) via mat-gram /embeddings on this host",
+          "view_kind": "panel",
+          "label": "Predict",
+          "icon": "calculator",
+          "url": "http://127.0.0.1:8080/embeddings",
           "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": []
-        },
-        {
-          "id": "heatmap",
-          "intent": "solubility_heatmap",
-          "description": "Heatmap of solubility across solvents, temperatures, or compositions",
-          "view_kind": "plotly",
-          "label": "Heatmap",
-          "icon": "grid-3x3",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_heatmap",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": []
-        },
-        {
-          "id": "timeseries",
-          "intent": "solubility_timeseries",
-          "description": "Time-series or curve visualization of solubility trends",
-          "view_kind": "plotly",
-          "label": "Timeseries",
-          "icon": "line-chart",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_timeseries",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": []
-        },
-        {
-          "id": "encode_pass",
-          "intent": "solubility_encode_pass",
-          "description": "SMI-TED t-SNE of 768-d embeddings from local mat-gram POST /embeddings",
-          "view_kind": "plotly",
-          "label": "Encode",
-          "icon": "orbit",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_encode_pass",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
           "form": [
             {
               "name": "smiles",
               "kind": "textarea",
               "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
-              "options": []
-            }
-          ]
-        },
-        {
-          "id": "attention_heatmap",
-          "intent": "solubility_attention_heatmap",
-          "description": "Pairwise SMI-TED embedding cosine-similarity heatmap via mat-gram /embeddings",
-          "view_kind": "plotly",
-          "label": "Attention",
-          "icon": "brain",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_attention_heatmap",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": [
-            {
-              "name": "smiles",
-              "kind": "textarea",
-              "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
-              "options": []
-            }
-          ]
-        },
-        {
-          "id": "property_diagnostics",
-          "intent": "solubility_property_diagnostics",
-          "description": "Parity plot of mat-gram property predictions (esol/bbbp/lipo) vs labels",
-          "view_kind": "plotly",
-          "label": "Parity",
-          "icon": "git-compare",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_property_diagnostics",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": [
-            {
-              "name": "smiles",
-              "kind": "textarea",
-              "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
-              "options": []
-            }
-          ]
-        },
-        {
-          "id": "latent_interpolation",
-          "intent": "solubility_latent_interpolation",
-          "description": "Latent interpolation between two SMILES via mat-gram embed \u2192 lerp \u2192 /decode",
-          "view_kind": "plotly",
-          "label": "Latent",
-          "icon": "waypoints",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_latent_interpolation",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": [
-            {
-              "name": "smiles",
-              "kind": "textarea",
-              "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
-              "options": []
-            }
-          ]
-        },
-        {
-          "id": "molecular_structure",
-          "intent": "solubility_molecular_structure",
-          "description": "Encode\u2192decode exact-match bars for SMILES via mat-gram /roundtrip",
-          "view_kind": "plotly",
-          "label": "Molecule",
-          "icon": "atom",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_molecular_structure",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": [
-            {
-              "name": "smiles",
-              "kind": "textarea",
-              "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
-              "options": []
-            }
-          ]
-        },
-        {
-          "id": "roundtrip",
-          "intent": "solubility_roundtrip",
-          "description": "Detailed SMI-TED round-trip: embedding norms + decode match via mat-gram /roundtrip",
-          "view_kind": "plotly",
-          "label": "Roundtrip",
-          "icon": "refresh-cw",
-          "url": "http://127.0.0.1:8002/viz?endpoint=solubility_roundtrip",
-          "method": "post",
-          "port": 8002,
-          "path": "/viz",
-          "form": [
-            {
-              "name": "smiles",
-              "kind": "textarea",
-              "label": "SMILES",
-              "default": "CCO c1ccccc1 CC(=O)O",
+              "default": "CCO",
               "options": []
             }
           ]
@@ -172,95 +26,46 @@
       ]
     },
     {
-      "intent": "settings",
-      "description": "MAX / mat-gram model lifecycle: start serve and connect weights",
+      "intent": "zinc",
+      "description": "ZINC lead-like molecule database via the query agent on this host",
       "endpoints": [
         {
-          "id": "start_max",
-          "intent": "settings_start_max",
-          "description": "Start the local MAX serve process with default pretrained SMI-TED weights",
+          "id": "query",
+          "intent": "zinc_query",
+          "description": "Natural-language SQL over zinc_leadlike",
           "view_kind": "panel",
-          "label": "Start MAX",
-          "icon": "play",
-          "url": "http://127.0.0.1:8011/settings/start-max",
+          "label": "Query",
+          "icon": "database",
+          "url": "http://static.29.136.62.46.clients.your-server.de:4009/chat",
           "method": "post",
-          "port": 8011,
-          "path": "/settings/start-max",
           "form": [
             {
-              "name": "device",
-              "kind": "select",
-              "label": "Device",
-              "default": "cpu",
-              "options": [
-                "cpu",
-                "gpu"
-              ]
+              "name": "message",
+              "kind": "textarea",
+              "label": "Question",
+              "default": "How many molecules have MW between 200 and 350?",
+              "options": []
             }
           ]
         },
         {
-          "id": "load_weights",
-          "intent": "settings_load_weights",
-          "description": "Connect a weight_path or finetune checkpoint (esol/bbbp/lipo) to MAX",
+          "id": "capabilities",
+          "intent": "zinc_capabilities",
+          "description": "Describe the single ZINC SQL twin and its required params (no DB execution)",
           "view_kind": "panel",
-          "label": "Weights",
-          "icon": "hard-drive",
-          "url": "http://127.0.0.1:8011/settings/load-weights",
+          "label": "Capabilities",
+          "icon": "list",
+          "url": "http://static.29.136.62.46.clients.your-server.de:4009/sqlCapabilities",
           "method": "post",
-          "port": 8011,
-          "path": "/settings/load-weights",
           "form": [
             {
-              "name": "task",
-              "kind": "select",
-              "label": "Weights / task",
-              "default": "pretrained",
-              "options": [
-                "pretrained",
-                "esol",
-                "bbbp",
-                "lipo"
-              ]
-            },
-            {
-              "name": "weight_path",
-              "kind": "text",
-              "label": "weight_path (optional)",
-              "default": "./model_assets/ibm-research_materials.smi-ted",
+              "name": "message",
+              "kind": "textarea",
+              "label": "Question",
+              "default": "What ZINC query params are required?",
               "options": []
-            },
-            {
-              "name": "checkpoint",
-              "kind": "text",
-              "label": "checkpoint (optional)",
-              "default": "",
-              "options": []
-            },
-            {
-              "name": "device",
-              "kind": "select",
-              "label": "Device",
-              "default": "cpu",
-              "options": [
-                "cpu",
-                "gpu"
-              ]
             }
           ]
-        },
-        {
-          "id": "stop_max",
-          "intent": "settings_stop_max",
-          "description": "Stop the local MAX serve subprocess",
-          "view_kind": "panel",
-          "label": "Stop MAX",
-          "icon": "square",
-          "url": "http://127.0.0.1:8011/settings/stop-max",
-          "method": "post",
-          "port": 8011,
-          "path": "/settings/stop-max",
-          "form": []
         }
       ]
     }

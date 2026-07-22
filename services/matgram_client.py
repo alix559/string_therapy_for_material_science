@@ -48,6 +48,25 @@ DEFAULT_SMILES = [
     "c1ccncc1",
 ]
 
+# Common English names → SMILES (for chat prompts without raw SMILES).
+COMMON_NAME_TO_SMILES: dict[str, str] = {
+    "ethanol": "CCO",
+    "alcohol": "CCO",
+    "benzene": "c1ccccc1",
+    "acetic acid": "CC(=O)O",
+    "acetate": "CC(=O)O",
+    "phenol": "c1ccc(O)cc1",
+    "aniline": "Nc1ccccc1",
+    "toluene": "Cc1ccccc1",
+    "pyridine": "c1ccncc1",
+    "butane": "CCCC",
+    "hexane": "CCCCCC",
+    "methanol": "CO",
+    "acetone": "CC(=O)C",
+    "naphthalene": "c1ccc2ccccc2c1",
+    "caffeine": "Cn1cnc2n(C)c(=O)n(C)c(=O)c12",
+}
+
 # Rough aqueous solubility labels (log10 mol/L) for parity demos when the
 # serve API is in property mode and the user message has no labels.
 ESOL_DEMO: dict[str, float] = {
@@ -71,13 +90,26 @@ def api_base() -> str:
 
 
 def extract_smiles(message: str | None, *, min_count: int = 1) -> list[str]:
-    """Pull SMILES strings from a free-text message, else fall back to defaults."""
+    """Pull SMILES strings from a free-text message, else fall back to defaults.
+
+    Also resolves common molecule names (e.g. benzene → c1ccccc1).
+    """
     text = (message or "").strip()
     found: list[str] = []
     if text:
+        lower = text.lower()
+        # Longer names first so "acetic acid" wins over partials.
+        for name in sorted(COMMON_NAME_TO_SMILES, key=len, reverse=True):
+            if re.search(rf"\b{re.escape(name)}\b", lower):
+                smi = COMMON_NAME_TO_SMILES[name]
+                if smi not in found:
+                    found.append(smi)
         for m in _SMILES_TOKEN.finditer(text):
             tok = m.group(1).strip(".,;:")
             if tok not in found and any(c.isalpha() for c in tok):
+                # Skip tokens that are just English words we already mapped.
+                if tok.lower() in COMMON_NAME_TO_SMILES:
+                    continue
                 found.append(tok)
     if len(found) >= min_count:
         return found

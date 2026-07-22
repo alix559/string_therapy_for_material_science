@@ -6,9 +6,11 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
-serve-viz = { cmd = "python serve_all.py", cwd = "services" }  # LangGraph viz (nbs/04) + settings
+serve-settings = { cmd = "python serve_settings.py", cwd = "services" }  # MAX settings on :8011
 # mat-gram / SMI-TED MAX HTTP API (lives in material-grammar/max_ports)
 api = "pixi run --manifest-path /root/mojo_projects/material_grammar/max_ports/pixi.toml api"
+
+main = "pixi run python -m string_therapy_for_material_science.main01"
 
 [dependencies]
 python = ">=3.13,<3.14"
@@ -26,3 +28,4 @@ httpx = ">=0.28.1,<0.29"
 string-therapy = ">=0.0.1, <0.0.2"
 langgraph = ">=0.4.0,<1"
 langchain-core = ">=0.3.0,<1"
+lisette = ">=0.1.35,<0.2"

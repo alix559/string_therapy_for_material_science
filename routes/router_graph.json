@@ -4,605 +4,104 @@
       "id": 1,
       "node_type": "category",
       "intent": "solubility",
-      "description": "Solubility and SMI-TED (mat-gram) visualization agents"
+      "description": "ESOL solubility via mat-gram (SMI-TED) on this host's MAX serve"
     },
     {
       "id": 2,
       "node_type": "endpoint",
-      "intent": "solubility_scatter",
-      "description": "Scatter plot of solubility vs temperature or concentration",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_scatter",
+      "intent": "solubility_embeddings",
+      "description": "SMI-TED ESOL property prediction via mat-gram POST /embeddings (wraps local MAX)",
+      "url": "http://127.0.0.1:8080/embeddings",
       "method": "post",
       "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
+        "smiles"
       ],
       "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer this endpoint for scatter / correlation style solubility plots."
+        "Send JSON body with smiles set to a SMILES string or list of SMILES (e.g. \"CCO\" or [\"CCO\", \"c1ccccc1\"]).",
+        "Prefer when the user asks to predict solubility, ESOL, logS, embeddings, or numeric property values for SMILES.",
+        "Service runs task=esol (property mode) against MAX on this host.",
+        "Response includes mode, task, model path, embeddings, and predictions (log10 mol/L)."
       ],
-      "model_reads_output": false
+      "model_reads_output": true
     },
     {
       "id": 3,
-      "node_type": "endpoint",
-      "intent": "solubility_heatmap",
-      "description": "Heatmap of solubility across solvents, temperatures, or compositions",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_heatmap",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer this endpoint for matrix / heatmap style solubility views."
-      ],
-      "model_reads_output": false
+      "node_type": "category",
+      "intent": "zinc",
+      "description": "ZINC lead-like molecule database via a single SQL twin over zinc_leadlike on this host's Postgres"
     },
     {
       "id": 4,
       "node_type": "endpoint",
-      "intent": "solubility_timeseries",
-      "description": "Time-series or curve visualization of solubility trends",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_timeseries",
+      "intent": "zinc_query",
+      "description": "Natural-language SQL over zinc_leadlike via the single twin query_zinc_leadlike (MW/logP, ZINC ID, InChIKey, tranche, SMILES)",
+      "url": "http://static.29.136.62.46.clients.your-server.de:4009/chat",
       "method": "post",
       "parameters": [
         "message",
+        "include_excel=true",
         "response_format=json",
         "session_id",
-        "history",
-        "use_history"
+        "request_id"
       ],
       "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer this endpoint for trend / time-series solubility curves."
+        "Forward the user message verbatim under message (keep any twin/query prefix).",
+        "Prefer when the user asks about ZINC molecules, lead-like screening, MW/logP ranges, ZINC IDs, InChIKeys, tranches, or SMILES search in the database.",
+        "Do not use this for solubility prediction — that is solubility_embeddings.",
+        "Optional prefix: 'query_zinc_leadlike: …' or 'zinc / query_zinc_leadlike: …'.",
+        "Current twin: query_zinc_leadlike. Required params (null unused filters): zinc_id, inchikey, tranche_name, smiles_pattern, mwt_min, mwt_max, logp_min, logp_max, net_charge, limit.",
+        "Service selects a SQL twin via explicit name or EmbeddingGemma + LanceDB, extracts params with Lisette, and queries Postgres on this host.",
+        "JSON response includes twin_name, row_count, rows, and optional excel (base64) when include_excel is true.",
+        "If the user explicitly wants a downloadable spreadsheet, set response_format=excel_file instead of json."
       ],
-      "model_reads_output": false
+      "model_reads_output": true
     },
     {
       "id": 5,
       "node_type": "endpoint",
-      "intent": "solubility_encode_pass",
-      "description": "SMI-TED t-SNE of 768-d embeddings from local mat-gram POST /embeddings",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_encode_pass",
+      "intent": "zinc_capabilities",
+      "description": "Describe the single ZINC SQL twin query_zinc_leadlike and its required parameters (no DB execution)",
+      "url": "http://static.29.136.62.46.clients.your-server.de:4009/sqlCapabilities",
       "method": "post",
       "parameters": [
         "message",
-        "response_format=json",
+        "top_k=5",
         "session_id",
-        "history",
-        "use_history"
+        "request_id"
       ],
       "instruction": [
         "Forward the user message verbatim under message.",
-        "Include SMILES; viz calls http://127.0.0.1:8080/embeddings.",
-        "Prefer for encode-pass / t-SNE / latent embedding scatter."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 6,
-      "node_type": "endpoint",
-      "intent": "solubility_attention_heatmap",
-      "description": "Pairwise SMI-TED embedding cosine-similarity heatmap via mat-gram /embeddings",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_attention_heatmap",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Include several SMILES for cosine similarity heatmap.",
-        "Prefer for molecule similarity / attention-style heatmaps."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 7,
-      "node_type": "endpoint",
-      "intent": "solubility_property_diagnostics",
-      "description": "Parity plot of mat-gram property predictions (esol/bbbp/lipo) vs labels",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_property_diagnostics",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Requires mat-gram property mode (checkpoint+task).",
-        "Prefer for prediction diagnostics / parity plots."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 8,
-      "node_type": "endpoint",
-      "intent": "solubility_latent_interpolation",
-      "description": "Latent interpolation between two SMILES via mat-gram embed \u2192 lerp \u2192 /decode",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_latent_interpolation",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Include at least two SMILES for latent interpolation.",
-        "Prefer for morphing between molecules in latent space."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 9,
-      "node_type": "endpoint",
-      "intent": "solubility_molecular_structure",
-      "description": "Encode\u2192decode exact-match bars for SMILES via mat-gram /roundtrip",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_molecular_structure",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Include SMILES; viz calls http://127.0.0.1:8080/roundtrip.",
-        "Prefer for molecular structure / round-trip fidelity views."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 10,
-      "node_type": "endpoint",
-      "intent": "solubility_roundtrip",
-      "description": "Detailed SMI-TED round-trip: embedding norms + decode match via mat-gram /roundtrip",
-      "url": "http://127.0.0.1:8002/viz?endpoint=solubility_roundtrip",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Include SMILES; viz calls http://127.0.0.1:8080/roundtrip.",
-        "Prefer for encode/decode smoke tests and fidelity diagnostics."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 11,
-      "node_type": "category",
-      "intent": "settings",
-      "description": "MAX / mat-gram model lifecycle: start serve and connect weights"
-    },
-    {
-      "id": 12,
-      "node_type": "endpoint",
-      "intent": "settings_start_max",
-      "description": "Start the local MAX serve process with default pretrained SMI-TED weights",
-      "url": "http://127.0.0.1:8011/settings/start-max",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer when user asks to start MAX or boot the model.",
-        "Calls mat-gram POST /load with default pretrained weights when not ready."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 13,
-      "node_type": "endpoint",
-      "intent": "settings_load_weights",
-      "description": "Connect a weight_path or finetune checkpoint (esol/bbbp/lipo) to MAX",
-      "url": "http://127.0.0.1:8011/settings/load-weights",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer when user asks to load/connect weights or switch task.",
-        "Message may include weight_path=..., checkpoint=... task=esol|bbbp|lipo."
-      ],
-      "model_reads_output": false
-    },
-    {
-      "id": 14,
-      "node_type": "endpoint",
-      "intent": "settings_stop_max",
-      "description": "Stop the local MAX serve subprocess",
-      "url": "http://127.0.0.1:8011/settings/stop-max",
-      "method": "post",
-      "parameters": [
-        "message",
-        "response_format=json",
-        "session_id",
-        "history",
-        "use_history"
-      ],
-      "instruction": [
-        "Forward the user message verbatim under message.",
-        "Prefer when the user asks to stop or unload the MAX model."
+        "Prefer when the user asks what ZINC query params are required or what the twin can filter.",
+        "Returns the twin name, description, and required parameters."
       ],
       "model_reads_output": false
     }
   ],
   "edges": [
-    {
-      "source": 1,
-      "target": 2,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 3,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 4,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 5,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 6,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 7,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 8,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 9,
-      "relation": "serves"
-    },
-    {
-      "source": 1,
-      "target": 10,
-      "relation": "serves"
-    },
-    {
-      "source": 11,
-      "target": 12,
-      "relation": "serves"
-    },
-    {
-      "source": 11,
-      "target": 13,
-      "relation": "serves"
-    },
-    {
-      "source": 11,
-      "target": 14,
-      "relation": "serves"
-    }
+    {"source": 1, "target": 2, "relation": "serves"},
+    {"source": 3, "target": 4, "relation": "serves"},
+    {"source": 3, "target": 5, "relation": "serves"}
   ],
   "acl": [
-    {
-      "node_id": 1,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 1,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 1,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 1,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 2,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 2,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 2,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 2,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 3,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 3,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 3,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 3,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 4,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 4,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 4,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 4,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 5,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 5,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 5,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 5,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 6,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 6,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 6,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 6,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 7,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 7,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 7,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 7,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 8,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 8,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 8,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 8,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 9,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 9,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 9,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 9,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 10,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 10,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 10,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 10,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 11,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 11,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 11,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 11,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 12,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 12,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 12,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 12,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 13,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 13,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 13,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 13,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 14,
-      "principal": "role:admin",
-      "permission": "view"
-    },
-    {
-      "node_id": 14,
-      "principal": "role:admin",
-      "permission": "invoke"
-    },
-    {
-      "node_id": 14,
-      "principal": "role:analyst",
-      "permission": "view"
-    },
-    {
-      "node_id": 14,
-      "principal": "role:analyst",
-      "permission": "invoke"
-    }
+    {"node_id": 1, "principal": "role:admin", "permission": "view"},
+    {"node_id": 1, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 1, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 1, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 2, "principal": "role:admin", "permission": "view"},
+    {"node_id": 2, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 2, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 2, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 3, "principal": "role:admin", "permission": "view"},
+    {"node_id": 3, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 3, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 3, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 4, "principal": "role:admin", "permission": "view"},
+    {"node_id": 4, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 4, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 4, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 5, "principal": "role:admin", "permission": "view"},
+    {"node_id": 5, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 5, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 5, "principal": "role:analyst", "permission": "invoke"}
   ]
 }

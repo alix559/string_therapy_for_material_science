@@ -1,5 +1,8 @@
 /** Category / IO viz client for the FastHTML shell.
  *  Loaded as /ui/viz_client.js — keep this out of the Python notebook.
+ *
+ *  One shared #io-view slot receives settings / router payloads.
+ *  Picker icons are built dynamically (not a fixed server-rendered set).
  */
 window.__stPlotlyDefaults = {
   paper_bgcolor: 'rgba(0,0,0,0)',
@@ -7,6 +10,33 @@ window.__stPlotlyDefaults = {
   font: { family: 'ui-sans-serif, system-ui, sans-serif' },
   margin: { t: 48, r: 24, b: 48, l: 56 },
 };
+
+/** id → [label, lucide icon] for dynamic picker buttons */
+window.__stIoMeta = {
+  predict: ['Predict', 'calculator'],
+  viz: ['Visualize', 'chart-column'],
+  scatter: ['Scatter', 'chart-scatter'],
+  heatmap: ['Heatmap', 'grid-3x3'],
+  timeseries: ['Timeseries', 'line-chart'],
+  encode_pass: ['Encode', 'orbit'],
+  attention_heatmap: ['Attention', 'brain'],
+  property_diagnostics: ['Parity', 'git-compare'],
+  latent_interpolation: ['Latent', 'waypoints'],
+  molecular_structure: ['Molecule', 'atom'],
+  roundtrip: ['Roundtrip', 'refresh-cw'],
+  table_analyst: ['Analyst', 'chart-column'],
+  start_max: ['Start MAX', 'play'],
+  load_weights: ['Weights', 'hard-drive'],
+  stop_max: ['Stop MAX', 'square'],
+};
+
+window.__stDefaultVizUrl = '';
+window.__stIoUnlocked = false;
+window.__stLastChatMessage = '';
+window.__stActiveEndpoints = [];
+/** Left→right history of IO viz returns (newest on the right). */
+window.__stVizHistory = [];
+
 window.__stLegacyToFigure = function(payload) {
   const plot = (payload && payload.plot) || {};
   const kind = String((payload && payload.visualization) || plot.type || '').toLowerCase();
@@ -33,6 +63,7 @@ window.__stLegacyToFigure = function(payload) {
   }
   return null;
 };
+
 window.__stFigureFromResponse = function(payload) {
   if (payload && payload.plotly && Array.isArray(payload.plotly.data)) {
     return { data: payload.plotly.data, layout: Object.assign({}, window.__stPlotlyDefaults, payload.plotly.layout||{}) };
@@ -41,21 +72,85 @@ window.__stFigureFromResponse = function(payload) {
   if (!legacy) return null;
   return { data: legacy.data, layout: Object.assign({}, window.__stPlotlyDefaults, legacy.layout||{}) };
 };
-window.__stShowIoView = function(iconId) {
-  document.querySelectorAll('[id$="-view"]').forEach(el => el.classList.add('hidden'));
-  const chat = document.getElementById('chat-view'); if (chat) chat.classList.add('hidden');
-  const graph = document.getElementById('graph-view'); if (graph) graph.classList.add('hidden');
-  const view = document.getElementById(iconId + '-view');
-  if (view) view.classList.remove('hidden');
-  document.querySelectorAll('[data-io-icon]').forEach(b => {
-    b.classList.remove('ring-2','ring-primary','text-primary');
+
+window.__stStripCategoryPrefix = function(intent) {
+  let s = String(intent || '');
+  for (const p of ['solubility_', 'settings_']) {
+    if (s.startsWith(p)) return s.slice(p.length);
+  }
+  return s;
+};
+
+window.__stIconIdFromEndpoint = function(ep) {
+  return window.__stStripCategoryPrefix(ep.id || '')
+    || window.__stStripCategoryPrefix(ep.intent || '');
+};
+
+window.__stIconIdFromParsed = function(parsed) {
+  const ep = String((parsed && parsed.endpoint) || '');
+  const stripped = window.__stStripCategoryPrefix(ep);
+  if (stripped && stripped !== ep) return stripped;
+  if (ep.startsWith('settings_')) return ep.slice('settings_'.length);
+  if (ep.startsWith('solubility_')) return ep.slice('solubility_'.length);
+  const viz = String((parsed && parsed.visualization) || '');
+  if (viz === 'parity') return 'property_diagnostics';
+  if (viz === 'predict_panel') return 'predict';
+  if (viz === 'settings_panel') {
+    const action = (parsed.panel && parsed.panel.action) || '';
+    return action || 'start_max';
+  }
+  return viz || '';
+};
+
+window.__stMetaForId = function(id) {
+  const m = window.__stIoMeta[id];
+  if (m) return { label: m[0], icon: m[1] };
+  const label = String(id || 'viz').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return { label, icon: 'chart-scatter' };
+};
+
+window.__stShowIoView = function() {
+  document.querySelectorAll('#chat-view, #graph-view, #io-view').forEach((el) => {
+    el.classList.add('hidden');
   });
-  const t = document.querySelector('[data-io-icon="' + iconId + '"]');
-  if (t) t.classList.add('ring-2','ring-primary','text-primary');
-  document.querySelectorAll('[data-taskbar-icon]').forEach(b => {
-    b.classList.remove('ring-2','ring-primary','text-primary');
+  const view = document.getElementById('io-view');
+  if (view) view.classList.remove('hidden');
+  document.querySelectorAll('[data-taskbar-icon]').forEach((b) => {
+    b.classList.remove('ring-2', 'ring-primary', 'text-primary');
   });
 };
+
+window.__stSetIoHeader = function(label, badge) {
+  const title = document.getElementById('io-title');
+  const badgeEl = document.getElementById('io-badge');
+  if (title) title.textContent = label || 'Visualization';
+  if (badgeEl) {
+    badgeEl.textContent = badge || '';
+    badgeEl.classList.toggle('hidden', !badge);
+  }
+};
+
+window.__stBindIoEndpoint = function(ep) {
+  const view = document.getElementById('io-view');
+  if (!view) return;
+  const intent = (ep && (ep.intent || ep.id)) || '';
+  const id = window.__stIconIdFromEndpoint(ep || {}) || window.__stStripCategoryPrefix(intent);
+  view.dataset.vizUrl = (ep && ep.url) || view.dataset.vizUrl || window.__stDefaultVizUrl;
+  view.dataset.vizMethod = ((ep && ep.method) || view.dataset.vizMethod || 'post').toLowerCase();
+  view.dataset.vizIntent = intent || id || '';
+  const meta = window.__stMetaForId(id);
+  window.__stSetIoHeader(meta.label, intent || id);
+};
+
+window.__stMarkActiveIoIcon = function(iconId) {
+  document.querySelectorAll('[data-io-icon]').forEach((b) => {
+    b.classList.remove('ring-2', 'ring-primary', 'text-primary');
+  });
+  if (!iconId) return;
+  const t = document.querySelector('[data-io-icon="' + iconId + '"]');
+  if (t) t.classList.add('ring-2', 'ring-primary', 'text-primary');
+};
+
 window.__stRenderSettingsPanel = function(chart, payload) {
   const panel = (payload && payload.panel) || {};
   const rows = panel.rows || [];
@@ -81,14 +176,29 @@ window.__stRenderSettingsPanel = function(chart, payload) {
       '</div>' +
     '</div>';
 };
-window.renderIoVizFromPayload = async function(iconId, payload) {
-  const view = document.getElementById(iconId + '-view');
-  const chart = document.getElementById(iconId + '-chart');
-  const status = document.getElementById(iconId + '-status');
+
+/** Render a settings / router payload into the shared IO slot. */
+window.renderIoVizFromPayload = async function(payload, opts) {
+  opts = opts || {};
+  const view = document.getElementById('io-view');
+  const chart = document.getElementById('io-chart');
+  const status = document.getElementById('io-status');
   if (!view || !chart) return;
-  window.__stShowIoView(iconId);
-  if (status) { status.hidden = false; status.textContent = 'Rendering…'; status.classList.remove('text-error'); }
+
+  const iconId = opts.iconId || window.__stIconIdFromParsed(payload || {}) || '';
+  const meta = window.__stMetaForId(iconId || 'viz');
+  const intent = (payload && payload.endpoint) || iconId;
+  window.__stSetIoHeader(meta.label, intent);
+  window.__stShowIoView();
+  window.__stMarkActiveIoIcon(iconId);
+
+  if (status) {
+    status.hidden = false;
+    status.textContent = 'Rendering…';
+    status.classList.remove('text-error');
+  }
   if (chart.data) { try { Plotly.purge(chart); } catch (e) {} }
+
   try {
     if (payload && payload.status === 'error') throw new Error(payload.error || 'viz error');
     if (payload && payload.panel) {
@@ -111,8 +221,9 @@ window.renderIoVizFromPayload = async function(iconId, payload) {
   }
   if (window.lucide) lucide.createIcons();
 };
-window.__stCollectFormMessage = function(iconId, fallback) {
-  const form = document.getElementById(iconId + '-form');
+
+window.__stCollectFormMessage = function(fallback) {
+  const form = document.getElementById('io-form');
   if (!form) return fallback || '';
   const parts = [];
   form.querySelectorAll('[name]').forEach((el) => {
@@ -124,20 +235,33 @@ window.__stCollectFormMessage = function(iconId, fallback) {
   });
   return parts.join(' ') || fallback || '';
 };
-window.loadIoViz = async function(iconId, message) {
-  const view = document.getElementById(iconId + '-view');
-  const chart = document.getElementById(iconId + '-chart');
-  const status = document.getElementById(iconId + '-status');
+
+/** Fetch viz for the currently bound endpoint into the shared slot. */
+window.loadIoViz = async function(message) {
+  const view = document.getElementById('io-view');
+  const chart = document.getElementById('io-chart');
+  const status = document.getElementById('io-status');
   if (!view || !chart) return;
-  const url = view.dataset.vizUrl || '';
+
+  const url = view.dataset.vizUrl || window.__stDefaultVizUrl;
   const method = (view.dataset.vizMethod || 'post').toUpperCase();
-  const intent = view.dataset.vizIntent || iconId;
-  const fromForm = window.__stCollectFormMessage(iconId, '');
-  const msg = (message && String(message).trim()) || fromForm || ('Show ' + intent);
-  if (status) { status.hidden = false; status.textContent = 'Loading ' + intent + '…'; status.classList.remove('text-error'); }
+  const intent = view.dataset.vizIntent || '';
+  const iconId = window.__stStripCategoryPrefix(intent);
+  const fromForm = window.__stCollectFormMessage('');
+  const msg = (message && String(message).trim()) || fromForm || ('Show ' + (intent || 'viz'));
+
+  window.__stSetIoHeader(window.__stMetaForId(iconId).label, intent || iconId);
+  window.__stShowIoView();
+  window.__stMarkActiveIoIcon(iconId);
+
+  if (status) {
+    status.hidden = false;
+    status.textContent = 'Loading ' + (intent || iconId || 'viz') + '…';
+    status.classList.remove('text-error');
+  }
   if (chart.data) { try { Plotly.purge(chart); } catch (e) {} }
   if (!url) {
-    if (status) { status.textContent = 'No endpoint URL for ' + iconId; status.classList.add('text-error'); }
+    if (status) { status.textContent = 'No endpoint URL'; status.classList.add('text-error'); }
     return;
   }
   try {
@@ -148,83 +272,110 @@ window.loadIoViz = async function(iconId, message) {
         message: msg,
         response_format: 'json',
         endpoint: intent,
-        visualization: window.__stStripCategoryPrefix(intent) || iconId,
+        visualization: iconId || intent,
       }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const payload = await res.json();
-    await window.renderIoVizFromPayload(iconId, payload);
+    await window.renderIoVizFromPayload(payload, { iconId });
   } catch (err) {
     if (status) {
       status.hidden = false;
-      status.textContent = 'Failed: ' + (err.message || err) + ' — is pixi run serve-viz up?';
+      status.textContent = 'Failed: ' + (err.message || err);
       status.classList.add('text-error');
     }
   }
 };
-window.submitIoForm = function(iconId) {
-  window.loadIoViz(iconId, window.__stCollectFormMessage(iconId, window.__stLastChatMessage));
+
+window.submitIoForm = function() {
+  window.loadIoViz(window.__stCollectFormMessage(window.__stLastChatMessage));
   return false;
 };
-window.__stIoUnlocked = false;
-window.__stLastChatMessage = '';
-window.__stStripCategoryPrefix = function(intent) {
-  let s = String(intent || '');
-  for (const p of ['solubility_', 'settings_']) {
-    if (s.startsWith(p)) return s.slice(p.length);
-  }
-  return s;
-};
-window.__stIconIdFromEndpoint = function(ep) {
-  return window.__stStripCategoryPrefix(ep.id || '')
-    || window.__stStripCategoryPrefix(ep.intent || '');
-};
-window.__stIconIdFromParsed = function(parsed) {
-  const ep = String((parsed && parsed.endpoint) || '');
-  const stripped = window.__stStripCategoryPrefix(ep);
-  if (stripped && stripped !== ep) return stripped;
-  if (ep.startsWith('settings_')) return ep.slice('settings_'.length);
-  if (ep.startsWith('solubility_')) return ep.slice('solubility_'.length);
-  const viz = String((parsed && parsed.visualization) || '');
-  if (viz === 'parity') return 'property_diagnostics';
-  if (viz === 'settings_panel') {
-    const action = (parsed.panel && parsed.panel.action) || '';
-    return action || 'start_max';
-  }
-  return viz || '';
-};
-window.revealIoIcons = function(endpoints) {
+
+/** Append (or move-to-end) a viz chip in #viz-picker — history grows left→right. */
+window.appendVizHistory = function(payload) {
   const picker = document.getElementById('viz-picker');
-  if (!picker) return [];
-  const ids = (endpoints || [])
-    .map(window.__stIconIdFromEndpoint)
-    .filter(Boolean);
-  const idSet = new Set(ids);
-  picker.querySelectorAll('[data-io-icon]').forEach((btn) => {
-    const id = btn.getAttribute('data-io-icon');
-    const show = !idSet.size || idSet.has(id);
-    btn.classList.toggle('hidden', !show);
-  });
+  if (!picker) return null;
+
+  const iconId = window.__stIconIdFromParsed(payload || {}) || 'viz';
+  const intent = (payload && payload.endpoint) || iconId;
+  const meta = window.__stMetaForId(iconId);
+  const entry = { id: iconId, intent: intent, payload: payload || {}, label: meta.label };
+
+  // Same viz type again → refresh payload and move chip to the right (most recent).
+  const existingIdx = window.__stVizHistory.findIndex((h) => h.id === iconId);
+  if (existingIdx >= 0) {
+    window.__stVizHistory.splice(existingIdx, 1);
+    const oldBtn = picker.querySelector('[data-io-icon="' + iconId + '"]');
+    if (oldBtn) oldBtn.remove();
+  }
+  window.__stVizHistory.push(entry);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'io-icon-' + iconId;
+  btn.title = meta.label;
+  btn.setAttribute('data-io-icon', iconId);
+  btn.className = 'btn btn-ghost btn-circle btn-xs';
+  btn.innerHTML = '<i data-lucide="' + meta.icon + '" class="w-3.5 h-3.5"></i>';
+  btn.addEventListener('click', () => window.openVizHistory(iconId));
+  picker.appendChild(btn);
+
   picker.classList.remove('hidden');
   window.__stIoUnlocked = true;
   if (window.lucide) lucide.createIcons();
-  return ids;
+  return iconId;
 };
-window.openIoViz = function(iconId) {
+
+/** Re-open a cached history entry in the shared IO slot (no refetch). */
+window.openVizHistory = function(iconId) {
   if (!window.__stIoUnlocked) return;
-  window.__stShowIoView(iconId);
-  window.loadIoViz(iconId, window.__stLastChatMessage);
+  const entry = (window.__stVizHistory || []).find((h) => h.id === iconId);
+  if (!entry) return;
+  window.__stBindIoEndpoint({
+    id: entry.id,
+    intent: entry.intent,
+    url: window.__stDefaultVizUrl,
+    method: 'post',
+  });
+  window.__stShowIoView();
+  window.__stMarkActiveIoIcon(iconId);
+  window.renderIoVizFromPayload(entry.payload || {}, { iconId: entry.id });
   if (window.lucide) lucide.createIcons();
 };
-window.openIoVizFromChat = function(iconId, payload) {
-  window.revealIoIcons([{ id: iconId, intent: (payload && payload.endpoint) || iconId }]);
-  window.renderIoVizFromPayload(iconId, payload || {});
+
+/** @deprecated kept for callers; category clicks no longer use this. */
+window.revealIoIcons = function(endpoints) {
+  const ids = [];
+  (endpoints || []).forEach((ep) => {
+    const id = window.__stIconIdFromEndpoint(ep);
+    if (id) ids.push(id);
+  });
+  return ids;
 };
-window.addEventListener('message', (ev) => {
-  const data = ev.data || {};
-  if (data.type !== 'string-therapy:open-category') return;
-  const endpoints = data.endpoints || [];
-  const ids = window.revealIoIcons(endpoints);
-  const first = ids[0] || (endpoints[0] && window.__stIconIdFromEndpoint(endpoints[0]));
-  if (first) window.openIoViz(first);
-});
+
+window.openIoViz = function(iconId) {
+  window.openVizHistory(iconId);
+};
+
+/** Controller returned a figure — append chip + fill the IO slot. */
+window.openIoVizFromChat = function(payload) {
+  try {
+    const iconId = window.appendVizHistory(payload || {}) || 'viz';
+    const intent = (payload && payload.endpoint) || iconId;
+    window.__stBindIoEndpoint({
+      id: iconId,
+      intent: intent,
+      url: window.__stDefaultVizUrl,
+      method: 'post',
+    });
+    window.__stShowIoView();
+    window.__stMarkActiveIoIcon(iconId);
+    window.renderIoVizFromPayload(payload || {}, { iconId });
+  } catch (err) {
+    console.error('openIoVizFromChat failed', err);
+  }
+};
+
+// Category node clicks must NOT populate the picker or fetch viz —
+// visualizations only arrive via openIoVizFromChat (controller return).
