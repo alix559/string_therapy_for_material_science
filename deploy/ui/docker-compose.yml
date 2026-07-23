@@ -1,0 +1,26 @@
+# Stable local UI + controller (Docker, host networking).
+#
+#   cd deploy/ui && docker compose up -d --build
+#   curl -s http://127.0.0.1:4546/health
+#
+# Host network keeps seeded router URLs on 127.0.0.1 working
+# (AGE, matgram, query_agent, analysts stay on this machine).
+# Railway Caddy proxies to :4546.
+
+services:
+  string-therapy-ui:
+    build:
+      context: ../..
+      dockerfile: deploy/ui/Dockerfile
+    image: string-therapy-ui:local
+    container_name: string-therapy-ui
+    network_mode: host
+    env_file:
+      - ../../.env
+    environment:
+      PORT: "4546"
+      UVICORN_RELOAD: "0"
+      JWT_AUTH_DISABLED: "true"
+      # Host-local backends (same network namespace via host mode)
+      MATGRAM_API_URL: http://127.0.0.1:8080
+    restart: unless-stopped

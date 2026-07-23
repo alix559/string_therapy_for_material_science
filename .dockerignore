@@ -1,3 +1,5 @@
+# Used when building deploy/ui from repo root (compose context: ../..).
+# Root Dockerfile is Caddy-only and barely needs this; keep UI build lean.
 .pixi
 .venv
 .git
@@ -11,16 +13,12 @@
 nbs
 _docs
 _proc
-deploy
+deploy/age
 services
-string_therapy_for_material_science
-routes
-ui
-pixi.toml
-pixi.lock
-pyproject.toml
 *.egg-info
 .pytest_cache
 .mypy_cache
 .ruff_cache
 .DS_Store
+.sesskey
+_docs

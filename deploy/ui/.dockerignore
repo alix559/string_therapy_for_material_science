@@ -1,0 +1,8 @@
+# Build context is repo root (see docker-compose context: ../..)
+# This file is only used if docker build -f is run from deploy/ui.
+# Prefer root .dockerignore patterns via compose context — keep light here.
+**/.pixi
+**/__pycache__
+**/.git
+**/.env
+**/.ipynb_checkpoints

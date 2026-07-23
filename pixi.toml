@@ -20,6 +20,10 @@ serve-solubility-batch = "python -m string_therapy_for_material_science.solubili
 api = "pixi run --manifest-path /root/mojo_projects/material_grammar/max_ports/pixi.toml api"
 
 main = "pixi run python -m string_therapy_for_material_science.main01"
+# Stable local UI (Docker, host network) — preferred over bare `main`
+ui-docker = { cmd = "docker compose up -d --build", cwd = "deploy/ui" }
+ui-docker-down = { cmd = "docker compose down", cwd = "deploy/ui" }
+ui-docker-logs = { cmd = "docker compose logs -f --tail=100", cwd = "deploy/ui" }
 # Reseed AGE from routes/router_graph.json (needs ROUTER_DATABASE_URL in .env)
 seed-routes = "python -c \"from dotenv import load_dotenv; load_dotenv(); from string_therapy import ensure_schema, seed_router_db; ensure_schema(); seed_router_db('routes/router_graph.json'); print('seeded routes/router_graph.json')\""
 

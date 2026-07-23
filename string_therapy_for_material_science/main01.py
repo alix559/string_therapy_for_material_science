@@ -185,10 +185,6 @@ def top_navbar():
             ),
             cls="flex-1",
         ),
-        Div(
-            Span("DaisyUI · nord", cls="badge badge-primary badge-outline"),
-            cls="flex-none",
-        ),
         cls="navbar bg-base-100/80 backdrop-blur border-b border-base-300 px-4 shadow-sm",
     )
 
@@ -286,8 +282,7 @@ def chat_area():
     return Div(
         Div(
             Div(
-                Span("Ask the  router", cls="font-medium"),
-                P("Routes over Postgres + Apache AGE", cls="text-sm opacity-60"),
+                Span("Ask the router", cls="font-medium"),
                 cls="mb-4 px-2",
             ),
             Div(id="chat-messages", cls="flex flex-col gap-3 w-full"),
