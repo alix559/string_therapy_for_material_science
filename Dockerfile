@@ -26,6 +26,7 @@ RUN pixi install --locked
 COPY pyproject.toml README.md ./
 COPY string_therapy_for_material_science ./string_therapy_for_material_science
 COPY routes ./routes
+COPY ui ./ui
 
 RUN pixi run python -m pip install -e .
 
