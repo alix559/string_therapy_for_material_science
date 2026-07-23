@@ -34,8 +34,10 @@ window.__stDefaultVizUrl = '';
 window.__stIoUnlocked = false;
 window.__stLastChatMessage = '';
 window.__stActiveEndpoints = [];
-/** Left→right history of IO viz returns (newest on the right). */
+/** Left→right history of IO viz returns (newest on the right), capped at max. */
 window.__stVizHistory = [];
+window.__stVizHistSeq = 0;
+window.__stVizHistoryMax = 5;
 
 window.__stLegacyToFigure = function(payload) {
   const plot = (payload && payload.plot) || {};
@@ -292,55 +294,64 @@ window.submitIoForm = function() {
   return false;
 };
 
-/** Append (or move-to-end) a viz chip in #viz-picker — history grows left→right. */
+/** Append a viz chip in #viz-picker — history grows left→right, max __stVizHistoryMax. */
 window.appendVizHistory = function(payload) {
   const picker = document.getElementById('viz-picker');
   if (!picker) return null;
 
-  const iconId = window.__stIconIdFromParsed(payload || {}) || 'viz';
-  const intent = (payload && payload.endpoint) || iconId;
-  const meta = window.__stMetaForId(iconId);
-  const entry = { id: iconId, intent: intent, payload: payload || {}, label: meta.label };
+  const typeId = window.__stIconIdFromParsed(payload || {}) || 'viz';
+  const intent = (payload && payload.endpoint) || typeId;
+  const meta = window.__stMetaForId(typeId);
+  // Unique instance id so repeated analyst charts append instead of replacing.
+  window.__stVizHistSeq += 1;
+  const histId = typeId + '__' + window.__stVizHistSeq;
+  const entry = {
+    id: histId,
+    typeId: typeId,
+    intent: intent,
+    payload: payload || {},
+    label: meta.label,
+  };
+  window.__stVizHistory.push(entry);
 
-  // Same viz type again → refresh payload and move chip to the right (most recent).
-  const existingIdx = window.__stVizHistory.findIndex((h) => h.id === iconId);
-  if (existingIdx >= 0) {
-    window.__stVizHistory.splice(existingIdx, 1);
-    const oldBtn = picker.querySelector('[data-io-icon="' + iconId + '"]');
+  // Cap at max — drop oldest (left).
+  while (window.__stVizHistory.length > window.__stVizHistoryMax) {
+    const dropped = window.__stVizHistory.shift();
+    const oldBtn = picker.querySelector('[data-io-icon="' + dropped.id + '"]');
     if (oldBtn) oldBtn.remove();
   }
-  window.__stVizHistory.push(entry);
 
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.id = 'io-icon-' + iconId;
+  btn.id = 'io-icon-' + histId;
   btn.title = meta.label;
-  btn.setAttribute('data-io-icon', iconId);
+  btn.setAttribute('data-io-icon', histId);
   btn.className = 'btn btn-ghost btn-circle btn-xs';
   btn.innerHTML = '<i data-lucide="' + meta.icon + '" class="w-3.5 h-3.5"></i>';
-  btn.addEventListener('click', () => window.openVizHistory(iconId));
+  btn.addEventListener('click', () => window.openVizHistory(histId));
   picker.appendChild(btn);
 
   picker.classList.remove('hidden');
   window.__stIoUnlocked = true;
   if (window.lucide) lucide.createIcons();
-  return iconId;
+  return histId;
 };
 
 /** Re-open a cached history entry in the shared IO slot (no refetch). */
-window.openVizHistory = function(iconId) {
+window.openVizHistory = function(histId) {
   if (!window.__stIoUnlocked) return;
-  const entry = (window.__stVizHistory || []).find((h) => h.id === iconId);
+  const entry = (window.__stVizHistory || []).find((h) => h.id === histId);
   if (!entry) return;
+  const typeId = entry.typeId || entry.id;
   window.__stBindIoEndpoint({
-    id: entry.id,
+    id: typeId,
     intent: entry.intent,
     url: window.__stDefaultVizUrl,
     method: 'post',
   });
   window.__stShowIoView();
-  window.__stMarkActiveIoIcon(iconId);
-  window.renderIoVizFromPayload(entry.payload || {}, { iconId: entry.id });
+  window.__stMarkActiveIoIcon(histId);
+  window.renderIoVizFromPayload(entry.payload || {}, { iconId: typeId });
   if (window.lucide) lucide.createIcons();
 };
 
@@ -354,24 +365,25 @@ window.revealIoIcons = function(endpoints) {
   return ids;
 };
 
-window.openIoViz = function(iconId) {
-  window.openVizHistory(iconId);
+window.openIoViz = function(histId) {
+  window.openVizHistory(histId);
 };
 
 /** Controller returned a figure — append chip + fill the IO slot. */
 window.openIoVizFromChat = function(payload) {
   try {
-    const iconId = window.appendVizHistory(payload || {}) || 'viz';
-    const intent = (payload && payload.endpoint) || iconId;
+    const histId = window.appendVizHistory(payload || {}) || 'viz';
+    const typeId = window.__stIconIdFromParsed(payload || {}) || 'viz';
+    const intent = (payload && payload.endpoint) || typeId;
     window.__stBindIoEndpoint({
-      id: iconId,
+      id: typeId,
       intent: intent,
       url: window.__stDefaultVizUrl,
       method: 'post',
     });
     window.__stShowIoView();
-    window.__stMarkActiveIoIcon(iconId);
-    window.renderIoVizFromPayload(payload || {}, { iconId });
+    window.__stMarkActiveIoIcon(histId);
+    window.renderIoVizFromPayload(payload || {}, { iconId: typeId });
   } catch (err) {
     console.error('openIoVizFromChat failed', err);
   }

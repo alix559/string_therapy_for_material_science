@@ -43,11 +43,36 @@ daisy_hdrs = (
     ),
     Script(src="https://unpkg.com/lucide@0.468.0"),
     Script(src="https://cdn.plot.ly/plotly-2.35.2.min.js"),
+    MarkdownJS(".chat-bubble.marked"),
     # Layout-only: Plotly/flex need fixed height; everything else is DaisyUI/Tailwind classes.
+    # `.marked` chat bubbles get light markdown typography (lists, code, paragraphs).
     Style("""
       html, body { height: 100%; margin: 0; }
       #main-panel { min-height: 0; }
       [id$="-chart"] { width: 100%; height: 100%; min-height: 320px; }
+      .chat-bubble.marked { white-space: normal; line-height: 1.45; }
+      .chat-bubble.marked > :first-child { margin-top: 0; }
+      .chat-bubble.marked > :last-child { margin-bottom: 0; }
+      .chat-bubble.marked p { margin: 0.4em 0; }
+      .chat-bubble.marked ul, .chat-bubble.marked ol {
+        margin: 0.4em 0; padding-left: 1.25rem; list-style-position: outside;
+      }
+      .chat-bubble.marked ul { list-style-type: disc; }
+      .chat-bubble.marked ol { list-style-type: decimal; }
+      .chat-bubble.marked li { margin: 0.2em 0; }
+      .chat-bubble.marked li > p { margin: 0.15em 0; }
+      .chat-bubble.marked code {
+        font-size: 0.9em; padding: 0.1em 0.35em; border-radius: 0.25rem;
+        background: color-mix(in oklab, currentColor 12%, transparent);
+      }
+      .chat-bubble.marked pre {
+        margin: 0.5em 0; padding: 0.5em 0.65em; border-radius: 0.4rem;
+        overflow-x: auto;
+        background: color-mix(in oklab, currentColor 10%, transparent);
+      }
+      .chat-bubble.marked pre code { padding: 0; background: transparent; }
+      .chat-bubble.marked strong { font-weight: 700; }
+      .chat-bubble.marked a { text-decoration: underline; }
     """),
 )
 
@@ -220,16 +245,14 @@ def chat_bubble(role: str, content: str):
         ),
         cls="chat-image avatar",
     )
+    bubble_cls = (
+        f"chat-bubble max-w-xl shadow "
+        f"{'chat-bubble-primary whitespace-pre-line' if is_user else 'chat-bubble-secondary marked'}"
+    )
     return Div(
         avatar,
         Div("You" if is_user else "Router", cls="chat-header opacity-70 text-xs mb-1"),
-        Div(
-            content,
-            cls=(
-                f"chat-bubble max-w-xl whitespace-pre-line shadow "
-                f"{'chat-bubble-primary' if is_user else 'chat-bubble-secondary'}"
-            ),
-        ),
+        Div(content, cls=bubble_cls),
         cls=f"chat {'chat-end' if is_user else 'chat-start'} px-2",
     )
 
@@ -417,22 +440,6 @@ def get(session):
         cls="flex flex-col h-screen",
     )
 
-def _icon_id_from_parsed(parsed: dict) -> str | None:
-    ep = str(parsed.get("endpoint") or "").strip()
-    for prefix in ("solubility_", "settings_"):
-        if ep.startswith(prefix):
-            return ep[len(prefix) :]
-    viz = str(parsed.get("visualization") or "").strip()
-    if viz == "parity":
-        return "property_diagnostics"
-    if viz == "predict_panel":
-        return "predict"
-    if viz == "settings_panel":
-        action = ((parsed.get("panel") or {}) if isinstance(parsed.get("panel"), dict) else {}).get("action")
-        return str(action) if action else "start_max"
-    return viz or None
-
-
 def _chat_reply_for_parsed(parsed: dict | None, raw_reply: str) -> str:
     if isinstance(parsed, dict):
         if parsed.get("status") == "error":
@@ -461,18 +468,6 @@ def _chat_reply_for_parsed(parsed: dict | None, raw_reply: str) -> str:
             panel = parsed.get("panel") if isinstance(parsed.get("panel"), dict) else {}
             note = f" — {panel['note']}" if panel.get("note") else ""
             return f"ESOL predictions ready{note}."
-        if parsed.get("panel"):
-            icon = _icon_id_from_parsed(parsed) or "settings"
-            note = ""
-            panel = parsed.get("panel")
-            if isinstance(panel, dict) and panel.get("note"):
-                note = f" — {panel['note']}"
-            ready = "ready" if (isinstance(panel, dict) and panel.get("ready")) else "not ready"
-            return f"Settings: {icon.replace('_', ' ')} ({ready}){note}."
-        if parsed.get("plotly") or parsed.get("plot"):
-            icon = _icon_id_from_parsed(parsed) or "chart"
-            src = parsed.get("source") or ("matgram" if not parsed.get("placeholder") else "demo")
-            return f"Opened {icon.replace('_', ' ')} visualization ({src})."
         if _parsed_has_table(parsed):
             twin = str(parsed.get("twin_name") or "query").replace("_", " ")
             n = parsed.get("row_count")

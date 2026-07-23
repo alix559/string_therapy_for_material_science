@@ -37,7 +37,7 @@ Use the same password as `POSTGRES_PASSWORD` in `deploy/age/.env`. URL-encode sp
 
 ### 4. Seed the router graph
 
-From the project root (pixi env with `string-therapy` installed):
+From the project root (pixi env; `string-therapy` is the editable sibling at `../string_therapy`):
 
 ```bash
 set -a && source .env && set +a

@@ -25,7 +25,8 @@ scikit-learn = ">=1.9.0,<2"
 httpx = ">=0.28.1,<0.29"
 
 [pypi-dependencies]
-string-therapy = ">=0.0.1, <0.0.2"
+# Local browse-first controller (sibling checkout). Survives pixi install.
+string-therapy = { path = "../string_therapy", editable = true }
 langgraph = ">=0.4.0,<1"
 langchain-core = ">=0.3.0,<1"
 lisette = ">=0.1.35,<0.2"

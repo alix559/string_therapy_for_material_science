@@ -27,12 +27,12 @@
     },
     {
       "intent": "zinc",
-      "description": "ZINC lead-like molecule database via the query agent on this host",
+      "description": "ZINC lead-like + PubChem compound databases via the query agent on this host",
       "endpoints": [
         {
           "id": "query",
           "intent": "zinc_query",
-          "description": "Natural-language SQL over zinc_leadlike",
+          "description": "Natural-language SQL over zinc_leadlike and pubchem_compounds",
           "view_kind": "panel",
           "label": "Query",
           "icon": "database",
@@ -51,7 +51,7 @@
         {
           "id": "capabilities",
           "intent": "zinc_capabilities",
-          "description": "Describe the single ZINC SQL twin and its required params (no DB execution)",
+          "description": "Describe matching ZINC/PubChem SQL twins and their required params (no DB execution)",
           "view_kind": "panel",
           "label": "Capabilities",
           "icon": "list",
@@ -62,7 +62,7 @@
               "name": "message",
               "kind": "textarea",
               "label": "Question",
-              "default": "What ZINC query params are required?",
+              "default": "What ZINC and PubChem query params are required?",
               "options": []
             }
           ]

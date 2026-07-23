@@ -4,12 +4,14 @@
       "id": 1,
       "node_type": "category",
       "intent": "solubility",
+      "name": "Model prediction",
       "description": "ESOL solubility via mat-gram (SMI-TED) on this host's MAX serve"
     },
     {
       "id": 2,
       "node_type": "endpoint",
       "intent": "solubility_embeddings",
+      "name": "Predict",
       "description": "SMI-TED ESOL property prediction via mat-gram POST /embeddings (wraps local MAX)",
       "url": "http://127.0.0.1:8080/embeddings",
       "method": "post",
@@ -28,13 +30,15 @@
       "id": 3,
       "node_type": "category",
       "intent": "zinc",
-      "description": "ZINC lead-like molecule database via a single SQL twin over zinc_leadlike on this host's Postgres"
+      "name": "Screening candidates",
+      "description": "ZINC lead-like + PubChem compound databases via SQL twins on this host's Postgres"
     },
     {
       "id": 4,
       "node_type": "endpoint",
       "intent": "zinc_query",
-      "description": "Natural-language SQL over zinc_leadlike via the single twin query_zinc_leadlike (MW/logP, ZINC ID, InChIKey, tranche, SMILES)",
+      "name": "Query",
+      "description": "Natural-language SQL over zinc_leadlike (query_zinc_leadlike) and pubchem_compounds (query_pubchem_compounds)",
       "url": "http://static.29.136.62.46.clients.your-server.de:4009/chat",
       "method": "post",
       "parameters": [
@@ -46,10 +50,10 @@
       ],
       "instruction": [
         "Forward the user message verbatim under message (keep any twin/query prefix).",
-        "Prefer when the user asks about ZINC molecules, lead-like screening, MW/logP ranges, ZINC IDs, InChIKeys, tranches, or SMILES search in the database.",
+        "Prefer when the user asks about ZINC or PubChem molecules, lead-like screening, MW/logP/XLogP ranges, ZINC IDs, PubChem CIDs, InChIKeys, formulas, IUPAC names, tranches, TPSA, H-bonds, or SMILES search.",
         "Do not use this for solubility prediction — that is solubility_embeddings.",
-        "Optional prefix: 'query_zinc_leadlike: …' or 'zinc / query_zinc_leadlike: …'.",
-        "Current twin: query_zinc_leadlike. Required params (null unused filters): zinc_id, inchikey, tranche_name, smiles_pattern, mwt_min, mwt_max, logp_min, logp_max, net_charge, limit.",
+        "Optional prefixes: 'query_zinc_leadlike: …', 'query_pubchem_compounds: …', 'zinc / query_zinc_leadlike: …', or 'pubchem / query_pubchem_compounds: …'.",
+        "Twins: query_zinc_leadlike (zinc_id, inchikey, tranche_name, smiles_pattern, mwt_min/max, logp_min/max, net_charge, limit) and query_pubchem_compounds (cid, inchikey, molecular_formula, smiles_pattern, iupac_name_pattern, molecular_weight_min/max, xlogp3_min/max, tpsa_min/max, hbond_donor, hbond_acceptor, total_charge, limit). Null unused filters.",
         "Service selects a SQL twin via explicit name or EmbeddingGemma + LanceDB, extracts params with Lisette, and queries Postgres on this host.",
         "JSON response includes twin_name, row_count, rows, and optional excel (base64) when include_excel is true.",
         "If the user explicitly wants a downloadable spreadsheet, set response_format=excel_file instead of json."
@@ -60,7 +64,8 @@
       "id": 5,
       "node_type": "endpoint",
       "intent": "zinc_capabilities",
-      "description": "Describe the single ZINC SQL twin query_zinc_leadlike and its required parameters (no DB execution)",
+      "name": "Capabilities",
+      "description": "Describe matching ZINC/PubChem SQL twins (query_zinc_leadlike, query_pubchem_compounds) and their required parameters (no DB execution)",
       "url": "http://static.29.136.62.46.clients.your-server.de:4009/sqlCapabilities",
       "method": "post",
       "parameters": [
@@ -71,8 +76,8 @@
       ],
       "instruction": [
         "Forward the user message verbatim under message.",
-        "Prefer when the user asks what ZINC query params are required or what the twin can filter.",
-        "Returns the twin name, description, and required parameters."
+        "Prefer when the user asks what screening query params are required or what twins/filters are available for ZINC or PubChem.",
+        "Returns matching twin names, descriptions, and required parameters."
       ],
       "model_reads_output": false
     }
