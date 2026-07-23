@@ -1,0 +1,22 @@
+# Thin Railway edge: proxy all traffic to the app on this Hetzner host.
+# Set UPSTREAM in Railway Variables, e.g.
+#   UPSTREAM=http://static.29.136.62.46.clients.your-server.de:4546
+
+{
+	auto_https off
+	admin off
+}
+
+:{$PORT:8080} {
+	reverse_proxy {$UPSTREAM} {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		transport http {
+			dial_timeout 10s
+			response_header_timeout 300s
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}

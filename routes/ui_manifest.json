@@ -11,7 +11,7 @@
           "view_kind": "panel",
           "label": "Predict",
           "icon": "calculator",
-          "url": "http://static.29.136.62.46.clients.your-server.de:8080/embeddings",
+          "url": "http://127.0.0.1:8080/embeddings",
           "method": "post",
           "form": [
             {
@@ -30,7 +30,7 @@
           "view_kind": "panel",
           "label": "Predict table",
           "icon": "table",
-          "url": "http://static.29.136.62.46.clients.your-server.de:8014/solubility/batch",
+          "url": "http://127.0.0.1:8014/solubility/batch",
           "method": "post",
           "hold": ["table"],
           "form": [
@@ -56,7 +56,7 @@
           "view_kind": "panel",
           "label": "Query",
           "icon": "database",
-          "url": "http://static.29.136.62.46.clients.your-server.de:4009/chat",
+          "url": "http://127.0.0.1:4009/chat",
           "method": "post",
           "form": [
             {
@@ -75,7 +75,7 @@
           "view_kind": "panel",
           "label": "Capabilities",
           "icon": "list",
-          "url": "http://static.29.136.62.46.clients.your-server.de:4009/sqlCapabilities",
+          "url": "http://127.0.0.1:4009/sqlCapabilities",
           "method": "post",
           "form": [
             {
@@ -101,7 +101,7 @@
           "view_kind": "panel",
           "label": "Chart",
           "icon": "chart-column",
-          "url": "http://static.29.136.62.46.clients.your-server.de:8012/analyst/plotly",
+          "url": "http://127.0.0.1:8012/analyst/plotly",
           "method": "post",
           "hold": ["table"],
           "form": [
@@ -128,7 +128,7 @@
           "view_kind": "panel",
           "label": "Transform",
           "icon": "sigma",
-          "url": "http://static.29.136.62.46.clients.your-server.de:8013/analyst/scipy",
+          "url": "http://127.0.0.1:8013/analyst/scipy",
           "method": "post",
           "hold": ["table"],
           "form": [

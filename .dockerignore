@@ -13,6 +13,12 @@ _docs
 _proc
 deploy
 services
+string_therapy_for_material_science
+routes
+ui
+pixi.toml
+pixi.lock
+pyproject.toml
 *.egg-info
 .pytest_cache
 .mypy_cache

@@ -13,7 +13,7 @@
       "intent": "solubility_embeddings",
       "name": "Predict",
       "description": "SMI-TED ESOL property prediction via mat-gram POST /embeddings (wraps local MAX)",
-      "url": "http://static.29.136.62.46.clients.your-server.de:8080/embeddings",
+      "url": "http://127.0.0.1:8080/embeddings",
       "method": "post",
       "parameters": [
         "smiles"
@@ -33,7 +33,7 @@
       "intent": "solubility_table",
       "name": "Predict table",
       "description": "Batch ESOL model prediction over an attached Graph table: score SMILES column via mat-gram, return rows with prediction column",
-      "url": "http://static.29.136.62.46.clients.your-server.de:8014/solubility/batch",
+      "url": "http://127.0.0.1:8014/solubility/batch",
       "method": "post",
       "hold": ["table"],
       "parameters": [
@@ -65,7 +65,7 @@
       "intent": "zinc_query",
       "name": "Query",
       "description": "Natural-language SQL over zinc_leadlike (query_zinc_leadlike) and pubchem_compounds (query_pubchem_compounds)",
-      "url": "http://static.29.136.62.46.clients.your-server.de:4009/chat",
+      "url": "http://127.0.0.1:4009/chat",
       "method": "post",
       "parameters": [
         "message",
@@ -92,7 +92,7 @@
       "intent": "zinc_capabilities",
       "name": "Capabilities",
       "description": "Describe matching ZINC/PubChem SQL twins (query_zinc_leadlike, query_pubchem_compounds) and their required parameters (no DB execution)",
-      "url": "http://static.29.136.62.46.clients.your-server.de:4009/sqlCapabilities",
+      "url": "http://127.0.0.1:4009/sqlCapabilities",
       "method": "post",
       "parameters": [
         "message",
@@ -121,7 +121,7 @@
       "intent": "chart",
       "name": "Chart",
       "description": "LangGraph Plotly analyst: draw charts from the attached table rows",
-      "url": "http://static.29.136.62.46.clients.your-server.de:8012/analyst/plotly",
+      "url": "http://127.0.0.1:8012/analyst/plotly",
       "method": "post",
       "hold": ["table"],
       "parameters": [
@@ -150,7 +150,7 @@
       "intent": "transform",
       "name": "Transform",
       "description": "LangGraph SciPy analyst: derive or normalize numeric columns from the attached table rows (not SMILES model prediction)",
-      "url": "http://static.29.136.62.46.clients.your-server.de:8013/analyst/scipy",
+      "url": "http://127.0.0.1:8013/analyst/scipy",
       "method": "post",
       "hold": ["table"],
       "parameters": [

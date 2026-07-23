@@ -595,9 +595,10 @@ async def chat_send(message: str, session, attached_table_id: str = ""):
     return tuple(parts)
 
 if __name__ == "__main__":
-    # Railway injects PORT; local default stays 4546.
+    # Default :4546 on this host (Railway Caddy proxies here). Set UVICORN_RELOAD=1 for dev.
     serve(
         appname="string_therapy_for_material_science.main01",
         port=int(os.getenv("PORT", "4546")),
+        reload=(os.getenv("UVICORN_RELOAD", "0").strip() == "1"),
     )
 
