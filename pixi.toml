@@ -7,10 +7,21 @@ version = "0.1.0"
 
 [tasks]
 serve-settings = { cmd = "python serve_settings.py", cwd = "services" }  # MAX settings on :8011
+# Plotly table analyst HTTP (:8012) — from nbs/04_langgraph_analyst.ipynb
+langgraph-analyst = "python -m string_therapy_for_material_science.analyst_langraph"
+serve-analyst = "python -m string_therapy_for_material_science.analyst_langraph"
+# SciPy table transform analyst HTTP (:8013) — from nbs/05_scipy_analyst.ipynb
+scipy-analyst = "python -m string_therapy_for_material_science.analyst_scipy"
+serve-scipy-analyst = "python -m string_therapy_for_material_science.analyst_scipy"
+# Table-batch ESOL via mat-gram HTTP (:8014) — from nbs/06_solubility_batch.ipynb
+solubility-batch = "python -m string_therapy_for_material_science.solubility_batch"
+serve-solubility-batch = "python -m string_therapy_for_material_science.solubility_batch"
 # mat-gram / SMI-TED MAX HTTP API (lives in material-grammar/max_ports)
 api = "pixi run --manifest-path /root/mojo_projects/material_grammar/max_ports/pixi.toml api"
 
 main = "pixi run python -m string_therapy_for_material_science.main01"
+# Reseed AGE from routes/router_graph.json (needs ROUTER_DATABASE_URL in .env)
+seed-routes = "python -c \"from dotenv import load_dotenv; load_dotenv(); from string_therapy import ensure_schema, seed_router_db; ensure_schema(); seed_router_db('routes/router_graph.json'); print('seeded routes/router_graph.json')\""
 
 [dependencies]
 python = ">=3.13,<3.14"
@@ -21,12 +32,12 @@ monsterui = ">=1.0.19,<2"
 plotly = ">=6.9.0,<7"
 numpy = ">=2.5.1,<3"
 pandas = ">=3.0.3,<4"
+scipy = ">=1.15.0,<2"
 scikit-learn = ">=1.9.0,<2"
 httpx = ">=0.28.1,<0.29"
 
 [pypi-dependencies]
-# Local browse-first controller (sibling checkout). Survives pixi install.
-string-therapy = { path = "../string_therapy", editable = true }
+string-therapy = ">=0.0.2,<0.1"
 langgraph = ">=0.4.0,<1"
 langchain-core = ">=0.3.0,<1"
 lisette = ">=0.1.35,<0.2"

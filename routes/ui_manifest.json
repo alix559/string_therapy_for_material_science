@@ -2,7 +2,7 @@
   "categories": [
     {
       "intent": "solubility",
-      "description": "ESOL solubility via mat-gram (SMI-TED) on this host's MAX serve",
+      "description": "ESOL solubility via mat-gram (SMI-TED): direct SMILES or batch model prediction over an attached Graph table",
       "endpoints": [
         {
           "id": "embeddings",
@@ -11,7 +11,7 @@
           "view_kind": "panel",
           "label": "Predict",
           "icon": "calculator",
-          "url": "http://127.0.0.1:8080/embeddings",
+          "url": "http://static.29.136.62.46.clients.your-server.de:8080/embeddings",
           "method": "post",
           "form": [
             {
@@ -19,6 +19,26 @@
               "kind": "textarea",
               "label": "SMILES",
               "default": "CCO",
+              "options": []
+            }
+          ]
+        },
+        {
+          "id": "table",
+          "intent": "solubility_table",
+          "description": "Batch model prediction on attached table SMILES column (output column e.g. pred/esol)",
+          "view_kind": "panel",
+          "label": "Predict table",
+          "icon": "table",
+          "url": "http://static.29.136.62.46.clients.your-server.de:8014/solubility/batch",
+          "method": "post",
+          "hold": ["table"],
+          "form": [
+            {
+              "name": "message",
+              "kind": "textarea",
+              "label": "Batch request",
+              "default": "Predict ESOL for each row into column pred",
               "options": []
             }
           ]
@@ -63,6 +83,60 @@
               "kind": "textarea",
               "label": "Question",
               "default": "What ZINC and PubChem query params are required?",
+              "options": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "intent": "plotly",
+      "description": "Plotly charts over an attached Graph table (requires table hold context)",
+      "hold": ["table"],
+      "endpoints": [
+        {
+          "id": "chart",
+          "intent": "chart",
+          "description": "LangGraph Plotly analyst over attached table rows",
+          "view_kind": "panel",
+          "label": "Chart",
+          "icon": "chart-column",
+          "url": "http://static.29.136.62.46.clients.your-server.de:8012/analyst/plotly",
+          "method": "post",
+          "hold": ["table"],
+          "form": [
+            {
+              "name": "message",
+              "kind": "textarea",
+              "label": "Chart request",
+              "default": "Scatter of the first two numeric columns",
+              "options": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "intent": "scipy",
+      "description": "SciPy/pandas numeric column transforms (not SMILES model prediction)",
+      "hold": ["table"],
+      "endpoints": [
+        {
+          "id": "transform",
+          "intent": "transform",
+          "description": "Numeric/math transforms only — not model prediction on SMILES",
+          "view_kind": "panel",
+          "label": "Transform",
+          "icon": "sigma",
+          "url": "http://static.29.136.62.46.clients.your-server.de:8013/analyst/scipy",
+          "method": "post",
+          "hold": ["table"],
+          "form": [
+            {
+              "name": "message",
+              "kind": "textarea",
+              "label": "Transform request",
+              "default": "Add a z-score column of the first numeric column",
               "options": []
             }
           ]

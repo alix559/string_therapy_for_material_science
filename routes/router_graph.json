@@ -5,7 +5,7 @@
       "node_type": "category",
       "intent": "solubility",
       "name": "Model prediction",
-      "description": "ESOL solubility via mat-gram (SMI-TED) on this host's MAX serve"
+      "description": "ESOL solubility via mat-gram (SMI-TED): direct SMILES or batch model prediction over an attached Graph table"
     },
     {
       "id": 2,
@@ -13,16 +13,42 @@
       "intent": "solubility_embeddings",
       "name": "Predict",
       "description": "SMI-TED ESOL property prediction via mat-gram POST /embeddings (wraps local MAX)",
-      "url": "http://127.0.0.1:8080/embeddings",
+      "url": "http://static.29.136.62.46.clients.your-server.de:8080/embeddings",
       "method": "post",
       "parameters": [
         "smiles"
       ],
       "instruction": [
         "Send JSON body with smiles set to a SMILES string or list of SMILES (e.g. \"CCO\" or [\"CCO\", \"c1ccccc1\"]).",
-        "Prefer when the user asks to predict solubility, ESOL, logS, embeddings, or numeric property values for SMILES.",
+        "Prefer when the user gives SMILES in the message (single or few molecules) and does not need table-row batch prediction.",
+        "Do not use this when an attached table should be scored row-wise — that is solubility_table / Predict table.",
         "Service runs task=esol (property mode) against MAX on this host.",
         "Response includes mode, task, model path, embeddings, and predictions (log10 mol/L)."
+      ],
+      "model_reads_output": true
+    },
+    {
+      "id": 10,
+      "node_type": "endpoint",
+      "intent": "solubility_table",
+      "name": "Predict table",
+      "description": "Batch ESOL model prediction over an attached Graph table: score SMILES column via mat-gram, return rows with prediction column",
+      "url": "http://static.29.136.62.46.clients.your-server.de:8014/solubility/batch",
+      "method": "post",
+      "hold": ["table"],
+      "parameters": [
+        "message",
+        "table"
+      ],
+      "instruction": [
+        "Requires an attached table in request context (hold=table). Forward message verbatim and pass table from bindings.",
+        "ALWAYS prefer this when a table is attached and the user asks to run a prediction / predict / score / model / ESOL / solubility / logS on a SMILES (or smiles) column, or to put model outputs in a new column (e.g. pred, esol).",
+        "Keywords that must route here (not SciPy): prediction, predict, pred, model, ESOL, solubility, logS, score SMILES, run on smiles column.",
+        "Extracts a SMILES column and POSTs the list to mat-gram; may name the output column from the user message (default esol).",
+        "Do not use SciPy/pandas transforms for model prediction on SMILES — that is this string.",
+        "Do not use this for Plotly charts or numeric z-score/ratio/normalize math on non-SMILES columns.",
+        "Optional prefixes: 'solubility / predict table: …' or 'solubility_table: …'.",
+        "Response includes rows enriched with the prediction column, twin_name, and row_count for a new Graph tab."
       ],
       "model_reads_output": true
     },
@@ -80,12 +106,76 @@
         "Returns matching twin names, descriptions, and required parameters."
       ],
       "model_reads_output": false
+    },
+    {
+      "id": 6,
+      "node_type": "category",
+      "intent": "plotly",
+      "name": "Plotly",
+      "description": "Plotly charts over an attached Graph table (requires table hold context)",
+      "hold": ["table"]
+    },
+    {
+      "id": 7,
+      "node_type": "endpoint",
+      "intent": "chart",
+      "name": "Chart",
+      "description": "LangGraph Plotly analyst: draw charts from the attached table rows",
+      "url": "http://static.29.136.62.46.clients.your-server.de:8012/analyst/plotly",
+      "method": "post",
+      "hold": ["table"],
+      "parameters": [
+        "message",
+        "table"
+      ],
+      "instruction": [
+        "Requires an attached table in request context (hold=table). Forward message verbatim and pass table from bindings.",
+        "Prefer when the user asks to plot, chart, scatter, histogram, bar, line, or visualize columns of the attached table.",
+        "Optional prefixes: 'plotly: …' or 'plotly / chart: …'.",
+        "Response includes plotly figure JSON (data/layout) plus a short response string."
+      ],
+      "model_reads_output": true
+    },
+    {
+      "id": 8,
+      "node_type": "category",
+      "intent": "scipy",
+      "name": "SciPy",
+      "description": "SciPy/pandas numeric column transforms over an attached Graph table (not ML/model prediction)",
+      "hold": ["table"]
+    },
+    {
+      "id": 9,
+      "node_type": "endpoint",
+      "intent": "transform",
+      "name": "Transform",
+      "description": "LangGraph SciPy analyst: derive or normalize numeric columns from the attached table rows (not SMILES model prediction)",
+      "url": "http://static.29.136.62.46.clients.your-server.de:8013/analyst/scipy",
+      "method": "post",
+      "hold": ["table"],
+      "parameters": [
+        "message",
+        "table"
+      ],
+      "instruction": [
+        "Requires an attached table in request context (hold=table). Forward message verbatim and pass table from bindings.",
+        "Prefer when the user asks for numeric/math transforms only: z-score, standardize, normalize, ratio, combine numeric columns, scipy.stats, filter-math.",
+        "Do NOT use this for model prediction, solubility, ESOL, logS, or scoring a SMILES/smiles column — that is Model prediction / Predict table (solubility_table).",
+        "Do NOT use this when the user says prediction/predict/pred/model on SMILES.",
+        "Do not use this for Plotly charts — that is plotly / chart.",
+        "Optional prefixes: 'scipy: …' or 'scipy / transform: …'.",
+        "Response includes rows (with new columns), twin_name, row_count, columns_added, and a short response string."
+      ],
+      "model_reads_output": true
     }
   ],
   "edges": [
     {"source": 1, "target": 2, "relation": "serves"},
+    {"source": 1, "target": 10, "relation": "serves"},
     {"source": 3, "target": 4, "relation": "serves"},
-    {"source": 3, "target": 5, "relation": "serves"}
+    {"source": 3, "target": 5, "relation": "serves"},
+    {"source": 6, "target": 7, "relation": "serves"},
+    {"source": 8, "target": 9, "relation": "serves"}
   ],
   "acl": [
     {"node_id": 1, "principal": "role:admin", "permission": "view"},
@@ -96,6 +186,10 @@
     {"node_id": 2, "principal": "role:admin", "permission": "invoke"},
     {"node_id": 2, "principal": "role:analyst", "permission": "view"},
     {"node_id": 2, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 10, "principal": "role:admin", "permission": "view"},
+    {"node_id": 10, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 10, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 10, "principal": "role:analyst", "permission": "invoke"},
     {"node_id": 3, "principal": "role:admin", "permission": "view"},
     {"node_id": 3, "principal": "role:admin", "permission": "invoke"},
     {"node_id": 3, "principal": "role:analyst", "permission": "view"},
@@ -107,6 +201,22 @@
     {"node_id": 5, "principal": "role:admin", "permission": "view"},
     {"node_id": 5, "principal": "role:admin", "permission": "invoke"},
     {"node_id": 5, "principal": "role:analyst", "permission": "view"},
-    {"node_id": 5, "principal": "role:analyst", "permission": "invoke"}
+    {"node_id": 5, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 6, "principal": "role:admin", "permission": "view"},
+    {"node_id": 6, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 6, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 6, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 7, "principal": "role:admin", "permission": "view"},
+    {"node_id": 7, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 7, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 7, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 8, "principal": "role:admin", "permission": "view"},
+    {"node_id": 8, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 8, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 8, "principal": "role:analyst", "permission": "invoke"},
+    {"node_id": 9, "principal": "role:admin", "permission": "view"},
+    {"node_id": 9, "principal": "role:admin", "permission": "invoke"},
+    {"node_id": 9, "principal": "role:analyst", "permission": "view"},
+    {"node_id": 9, "principal": "role:analyst", "permission": "invoke"}
   ]
 }

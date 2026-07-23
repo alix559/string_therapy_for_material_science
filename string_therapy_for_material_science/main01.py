@@ -4,7 +4,8 @@
 __all__ = ['REPO', 'DAISY_THEME', 'daisy_hdrs', 'interface_icons', 'GRAPH_JSON', 'DEFAULT_VIZ_URL', 'VIZ_CLIENT_JS',
            'TABLE_CLIENT_JS', 'CHAT_CLIENT_JS', 'app', 'rt', 'IconKind', 'Icon', 'lucide_icon', 'top_navbar', 'taskbar',
            'viz_picker', 'chat_bubble', 'oob_chat_bubble', 'chat_area', 'graph_view', 'io_viz_view', 'main_panel',
-           'input_bar', 'viz_client_js', 'table_client_js', 'chat_client_js', 'api_tables_upsert', 'get', 'chat_send']
+           'input_bar', 'viz_client_js', 'table_client_js', 'chat_client_js', 'api_tables_upsert', 'health', 'get',
+           'chat_send']
 
 # %% ../nbs/02_main.ipynb #ecba6638-daisy-0002
 import json
@@ -80,13 +81,15 @@ daisy_hdrs = (
 # %% ../nbs/02_main.ipynb #ea4fddae-daisy-0003
 
 
-# %% ../nbs/02_main.ipynb #ea4fddae-daisy-0003
+# %% ../nbs/02_main.ipynb #daisy-icons-code
 class IconKind(Enum):
+    """Taskbar icon category: interface chrome vs IO visualization."""
     INTERFACE = "interface"
     IO = "io"
 
 @dataclass
 class Icon:
+    """One taskbar or IO picker icon (id, label, lucide name, kind)."""
     id: str
     label: str
     icon: str
@@ -117,6 +120,7 @@ _TABLE_STORE: dict[str, dict[str, dict]] = {}
 
 
 def _store_table(session_id: str, entry: dict) -> None:
+    """Persist a Graph-tab table entry for ``session_id`` (upsert by ``entry["id"]``)."""
     sid = (session_id or "").strip() or "_anon"
     tid = str(entry.get("id") or "").strip()
     if not tid:
@@ -135,6 +139,7 @@ def _store_table(session_id: str, entry: dict) -> None:
 
 
 def _get_table(session_id: str, table_id: str) -> dict | None:
+    """Return a stored table dict for ``session_id``/``table_id``, or ``None``."""
     sid = (session_id or "").strip() or "_anon"
     tid = (table_id or "").strip()
     if not tid:
@@ -142,15 +147,19 @@ def _get_table(session_id: str, table_id: str) -> dict | None:
     return (_TABLE_STORE.get(sid) or {}).get(tid)
 
 
+# %% ../nbs/02_main.ipynb #daisy-layout-code
 def lucide_icon(name: str, cls: str = "w-5 h-5"):
+    """Return a Lucide ``<i data-lucide=...>`` element for client-side icon hydration."""
     return I(data_lucide=name, cls=cls)
 
 def _show_view_js(view_id: str) -> str:
+    """JS snippet that hides all main views and shows ``view_id``."""
     parts = [f"document.getElementById('{v}').classList.add('hidden')" for v in _VIEW_IDS]
     parts.append(f"document.getElementById('{view_id}').classList.remove('hidden')")
     return "; ".join(parts)
 
 def _set_active_icon_js(icon_id: str, *, attr: str = "data-taskbar-icon") -> str:
+    """JS snippet that outlines the active taskbar/IO icon matching ``icon_id``."""
     remove = "".join(f"b.classList.remove('{c}');" for c in _ACTIVE_OUTLINE_CLASSES)
     add = "".join(f"t.classList.add('{c}');" for c in _ACTIVE_OUTLINE_CLASSES)
     return (
@@ -162,9 +171,11 @@ def _set_active_icon_js(icon_id: str, *, attr: str = "data-taskbar-icon") -> str
     )
 
 def _view_for_icon(icon_id: str) -> str:
+    """Map a taskbar icon id to its main-panel view element id."""
     return {"chat": "chat-view", "graph": "graph-view"}.get(icon_id, "chat-view")
 
 def top_navbar():
+    """Top brand bar for the DaisyUI shell."""
     return Div(
         Div(
             A(
@@ -182,6 +193,7 @@ def top_navbar():
     )
 
 def _taskbar_btn(ic: Icon):
+    """Build one taskbar button that switches views and updates the active outline."""
     outline = " ".join(_ACTIVE_OUTLINE_CLASSES) if ic.active else ""
     icon_el = lucide_icon(ic.icon, cls="w-4 h-4")
     if ic.id == "graph":
@@ -215,6 +227,7 @@ def _taskbar_btn(ic: Icon):
     )
 
 def taskbar():
+    """Bottom taskbar with Chat / Graph interface icons."""
     return Div(
         *[_taskbar_btn(ic) for ic in interface_icons],
         id="taskbar",
@@ -234,7 +247,10 @@ def viz_picker():
         ),
     )
 
+
+# %% ../nbs/02_main.ipynb #daisy-views-code
 def chat_bubble(role: str, content: str):
+    """Render a single user or assistant chat bubble with avatar."""
     is_user = role == "user"
     avatar = Div(
         Div(
@@ -266,6 +282,7 @@ def oob_chat_bubble(role: str, content: str, *, after_js: str = ""):
     )
 
 def chat_area():
+    """Scrollable chat view that hosts #chat-messages."""
     return Div(
         Div(
             Div(
@@ -313,6 +330,7 @@ def io_viz_view():
     )
 
 def main_panel():
+    """Stack of chat, graph, and IO views (only one visible at a time)."""
     return Div(
         chat_area(),
         graph_view(),
@@ -322,6 +340,7 @@ def main_panel():
     )
 
 def input_bar():
+    """Fixed bottom composer: message form, viz picker slot, and taskbar."""
     return Div(
         Form(
             Input(type="hidden", name="attached_table_id", id="attached-table-id", value=""),
@@ -379,6 +398,8 @@ def input_bar():
         cls="fixed bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-5 max-w-2xl mx-auto w-full",
     )
 
+
+# %% ../nbs/02_main.ipynb #daisy-routes-code
 app, rt = fast_app(
     hdrs=daisy_hdrs,
     pico=False,
@@ -388,14 +409,17 @@ app, rt = fast_app(
 
 @rt("/ui/viz_client.js")
 def viz_client_js():
+    """Serve ``ui/viz_client.js`` for the IO visualization client."""
     return FileResponse(VIZ_CLIENT_JS, media_type="application/javascript")
 
 @rt("/ui/table_client.js")
 def table_client_js():
+    """Serve ``ui/table_client.js`` for the Graph tables workspace."""
     return FileResponse(TABLE_CLIENT_JS, media_type="application/javascript")
 
 @rt("/ui/chat_client.js")
 def chat_client_js():
+    """Serve ``ui/chat_client.js`` for outgoing chat UX helpers."""
     return FileResponse(CHAT_CLIENT_JS, media_type="application/javascript")
 
 
@@ -423,8 +447,15 @@ async def api_tables_upsert(req, session):
     )
 
 
+@rt("/health")
+def health():
+    """Liveness for Railway / deploy checks."""
+    return JSONResponse({"status": "ok"})
+
+
 @rt("/")
 def get(session):
+    """Render the full-page shell (navbar, main panel, input bar, client scripts)."""
     if "session_id" not in session:
         session["session_id"] = str(uuid.uuid4())
 
@@ -440,49 +471,28 @@ def get(session):
         cls="flex flex-col h-screen",
     )
 
+
+# %% ../nbs/02_main.ipynb #daisy-chat-code
 def _chat_reply_for_parsed(parsed: dict | None, raw_reply: str) -> str:
-    if isinstance(parsed, dict):
-        if parsed.get("status") == "error":
-            err = (
-                parsed.get("error")
-                or parsed.get("detail")
-                or parsed.get("response")
-                or "unknown error"
-            )
-            hint = parsed.get("hint")
-            # Query-agent / router errors use status=error too; only viz payloads have these keys.
-            is_viz = bool(
-                parsed.get("visualization")
-                or parsed.get("plotly")
-                or parsed.get("plot")
-                or hint
-            )
-            prefix = "Visualization failed" if is_viz else "Request failed"
-            return f"{prefix}: {err}" + (f" — {hint}" if hint else "")
-        if parsed.get("visualization") == "predict_panel" or parsed.get("endpoint") == "solubility_predict":
-            preds = parsed.get("predictions") or []
-            if isinstance(preds, list) and preds:
-                bits = [f"{p.get('smiles')}: {float(p.get('value')):.3f}" for p in preds[:8] if isinstance(p, dict)]
-                extra = f" (+{len(preds)-8} more)" if len(preds) > 8 else ""
-                return "ESOL predictions (logS): " + "; ".join(bits) + extra + "."
-            panel = parsed.get("panel") if isinstance(parsed.get("panel"), dict) else {}
-            note = f" — {panel['note']}" if panel.get("note") else ""
-            return f"ESOL predictions ready{note}."
-        if _parsed_has_table(parsed):
-            twin = str(parsed.get("twin_name") or "query").replace("_", " ")
-            n = parsed.get("row_count")
-            if n is None:
-                n = len(parsed.get("rows") or [])
-            return f"Loaded {n} rows ({twin}) into Tables."
+    """Prefer downstream prose; avoid dumping large JSON payloads into the bubble."""
+    if isinstance(parsed, dict) and parsed.get("status") == "error":
+        err = (
+            parsed.get("error")
+            or parsed.get("detail")
+            or parsed.get("response")
+            or raw_reply
+            or "unknown error"
+        )
+        hint = parsed.get("hint")
+        return str(err) + (f" — {hint}" if hint else "")
     reply = raw_reply if isinstance(raw_reply, str) else json.dumps(raw_reply, indent=2)
-    if reply.strip().lower() == "done":
-        return "Done."
     if len(reply) > 500 and (reply.lstrip().startswith("{") or reply.lstrip().startswith("[")):
         return "Request completed."
     return reply
 
 
 def _parsed_has_viz(parsed: dict | None) -> bool:
+    """True when ``parsed`` carries a plotly/plot/panel payload for the IO view."""
     return isinstance(parsed, dict) and bool(
         parsed.get("plotly") or parsed.get("plot") or parsed.get("panel")
     )
@@ -498,6 +508,7 @@ def _parsed_has_table(parsed: dict | None) -> bool:
 
 @rt("/chat/send", methods=["POST"])
 async def chat_send(message: str, session, attached_table_id: str = ""):
+    """Handle chat submit via controller; attach table hold context when a Graph tab is selected."""
     user_msg = message.strip()
     if not user_msg:
         return ""
@@ -510,6 +521,10 @@ async def chat_send(message: str, session, attached_table_id: str = ""):
     data: dict = {}
     table_id = (attached_table_id or "").strip()
 
+    payload: dict = {"message": user_msg, "use_history": True, "response_format": "json"}
+    if sid:
+        payload["session_id"] = sid
+
     if table_id:
         entry = _get_table(sid, table_id)
         if not entry:
@@ -517,28 +532,20 @@ async def chat_send(message: str, session, attached_table_id: str = ""):
                 "status": "error",
                 "error": "Attached table not found on the server. Re-run the query or re-attach the tab.",
                 "visualization": "table_analyst",
-                "endpoint": "table_analyst",
+                "endpoint": "plotly",
                 "source": "analyst",
             }
             reply = _chat_reply_for_parsed(parsed, "")
         else:
-            from string_therapy_for_material_science.analyst_langraph import run_analyst
+            payload["table"] = {
+                "id": entry.get("id"),
+                "title": entry.get("title"),
+                "twin": entry.get("twin"),
+                "columns": entry.get("columns") or [],
+                "rows": entry.get("rows") or [],
+            }
 
-            parsed = run_analyst(user_msg, entry.get("rows") or [])
-            if isinstance(parsed, dict) and parsed.get("status") == "success" and parsed.get("plotly"):
-                reply = (
-                    f"Opened table analyst visualization for {entry.get('title') or 'table'}."
-                )
-            else:
-                reply = _chat_reply_for_parsed(
-                    parsed if isinstance(parsed, dict) else None,
-                    (parsed or {}).get("response") if isinstance(parsed, dict) else "",
-                )
-    else:
-        payload: dict = {"message": user_msg, "use_history": True, "response_format": "json"}
-        if sid:
-            payload["session_id"] = sid
-
+    if not reply:
         r = _controller.post("/controller", json=payload)
         try:
             data = r.json()
@@ -588,6 +595,9 @@ async def chat_send(message: str, session, attached_table_id: str = ""):
     return tuple(parts)
 
 if __name__ == "__main__":
-    serve(appname="string_therapy_for_material_science.main01", port=4546)
-
+    # Railway injects PORT; local default stays 4546.
+    serve(
+        appname="string_therapy_for_material_science.main01",
+        port=int(os.getenv("PORT", "4546")),
+    )
 
